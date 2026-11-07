@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+{% block title %}StockFlow – Dashboard{% endblock %}
+
+{% block content %}
+<div class="sf-topbar">
+    <h1><i class="bi bi-grid-1x2 me-2" style="color:var(--sf-primary)"></i>Dashboard</h1>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{{ url_for('export_products') }}" class="btn-sf outline"><i class="bi bi-download"></i> Export CSV</a>
+        <a href="{{ url_for('product_create') }}" class="btn-sf primary"><i class="bi bi-plus-lg"></i> Add Product</a>
+        <a href="{{ url_for('customer_create') }}" class="btn-sf success"><i class="bi bi-person-plus"></i> Add Customer</a>
+    </div>
+</div>
+
+<!-- Stats -->
+<div class="row g-3 mb-4">
+    <div class="col-md col-6">
+        <div class="sf-card sf-stat-card">
+            <div class="sf-stat-icon blue"><i class="bi bi-box-seam"></i></div>
+            <div>
+                <div class="sf-stat-value">{{ products|length }}</div>
+                <div class="sf-stat-label">Products</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md col-6">
+        <div class="sf-card sf-stat-card">
+            <div class="sf-stat-icon green"><i class="bi bi-archive"></i></div>
+            <div>
+                <div class="sf-stat-value">{{ products|sum(attribute='quantity') }}</div>
+                <div class="sf-stat-label">Total Stock</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md col-6">
+        <div class="sf-card sf-stat-card">
+            <div class="sf-stat-icon amber"><i class="bi bi-exclamation-triangle"></i></div>
+            <div>
+                <div class="sf-stat-value">{{ products|selectattr('quantity','le',5)|list|length }}</div>
+                <div class="sf-stat-label">Low Stock (≤5)</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md col-6">
+        <div class="sf-card sf-stat-card">
+            <div class="sf-stat-icon cyan"><i class="bi bi-people"></i></div>
+            <div>
+                <div class="sf-stat-value">{{ customers|length }}</div>
+                <div class="sf-stat-label">Customers</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md col-6">
+        <div class="sf-card sf-stat-card">
+            <div class="sf-stat-icon red"><i class="bi bi-receipt"></i></div>
+            <div>
+                <div class="sf-stat-value">{{ invoices|length }}</div>
+                <div class="sf-stat-label">Recent Invoices</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter notification if tag filter is active -->
+{% if active_tag %}
+<div class="alert alert-info d-flex align-items-center justify-content-between mb-3 py-2 px-3" style="border-radius:10px;">
+    <div>
+        <i class="bi bi-tag-fill me-1"></i> Filtered by tag:
+        <span class="badge" style="background-color:{{ active_tag.color }};color:#fff;font-size:.85rem;">{{ active_tag.name }}</span>
+    </div>
+    <a href="{{ url_for('index') }}" class="btn-sf outline btn-sm" style="padding:.25rem .7rem;">Clear Filter</a>
+</div>
+{% endif %}
+
+<!-- Products Table -->
+<div class="sf-card mb-4">
+    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <h5 class="mb-0" style="font-weight:600;"><i class="bi bi-box-seam me-2"></i>Inventory</h5>
+        <div class="d-flex gap-2">
+            <input type="text" id="searchInput" class="form-control form-control-sm" style="max-width:220px;border-radius:8px;" placeholder="Search products…" onkeyup="filterTable()">
+        </div>
+    </div>
+    {% if products %}
+    <div class="table-responsive">
+        <table class="sf-table" id="productTable">
+            <thead>
+                <tr>
+                    <th style="width:50px"></th>
+                    <th>Name</th>
+                    <th>SKU</th>
+                    <th>Category</th>
+                    <th>Tags</th>
+                    <th>Stock</th>
+                    <th>Price</th>
+                    <th style="text-align:right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in products %}
+                <tr>
+                    <td>
+                        {% if p.image_url %}
+                            <img src="{{ p.image_url }}" class="product-thumb" alt="{{ p.name }}">
+                        {% else %}
+                            <div class="product-thumb-placeholder"><i class="bi bi-image"></i></div>
+                        {% endif %}
+                    </td>
+                    <td style="font-weight:500;">
+                        <a href="{{ url_for('product_edit', pid=p.id) }}" style="color:inherit;text-decoration:none;" class="hover-underline">
+                            {{ p.name }}
+                        </a>
+                    </td>
+                    <td><code>{{ p.sku }}</code></td>
+                    <td>
+                        {% if p.category %}
+                            <span class="badge" style="background-color:{{ p.category.color }}; color:#fff; font-size:.75rem; padding:.35em .65em; border-radius:6px;">
+                                <i class="bi {{ p.category.icon }} me-1"></i>{{ p.category.name }}
+                            </span>
+                        {% else %}
+                            <span style="color:var(--sf-muted); font-size:.8rem;">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if p.tags %}
+                            <div class="d-flex gap-1 flex-wrap">
+                                {% for t in p.tags %}
+                                    <a href="{{ url_for('index', tag=t.id) }}" class="tag-pill" style="background-color:{{ t.color }};" title="Filter by {{ t.name }}">
+                                        {{ t.name }}
+                                    </a>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <span style="color:var(--sf-muted); font-size:.8rem;">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if p.quantity == 0 %}
+                            <span class="badge-stock out">Out of stock</span>
+                        {% elif p.quantity <= 5 %}
+                            <span class="badge-stock low">{{ p.quantity }} left</span>
+                        {% else %}
+                            <span class="badge-stock ok">{{ p.quantity }}</span>
+                        {% endif %}
+                    </td>
+                    <td>${{ "%.2f"|format(p.price) }}</td>
+                    <td style="text-align:right;">
+                        <!-- QR Code Button -->
+                        <a href="{{ url_for('product_qrcode', pid=p.id) }}" target="_blank" class="btn-sf outline btn-sm" title="View QR Code">
+                            <i class="bi bi-qr-code"></i> QR
+                        </a>
+                        <!-- Barcode Button -->
+                        <a href="{{ url_for('product_barcode', pid=p.id) }}" target="_blank" class="btn-sf outline btn-sm" title="View Barcode">
+                            <i class="bi bi-upc"></i> Barcode
+                        </a>
+                        <!-- Edit Button -->
+                        <a href="{{ url_for('product_edit', pid=p.id) }}" class="btn-sf outline btn-sm" title="Edit">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <!-- Delete Button -->
+                        <form action="{{ url_for('product_delete', pid=p.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Delete {{ p.name }}?')">
+                            <button type="submit" class="btn-sf danger btn-sm" title="Delete"><i class="bi bi-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5" style="color:var(--sf-muted);">
+        <i class="bi bi-inbox" style="font-size:2.5rem;"></i>
+        <p class="mt-2 mb-0">No products found. <a href="{{ url_for('product_create') }}">Add a product</a>.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Recent Invoices -->
+{% if invoices %}
+<div class="sf-card">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h5 class="mb-0" style="font-weight:600;"><i class="bi bi-receipt me-2"></i>Recent Invoices</h5>
+        <a href="{{ url_for('invoice_list') }}" class="btn-sf outline btn-sm">View All</a>
+    </div>
+    <div class="table-responsive">
+        <table class="sf-table">
+            <thead><tr><th>Invoice</th><th>Client</th><th>Date</th><th>Total</th></tr></thead>
+            <tbody>
+                {% for inv in invoices %}
+                <tr>
+                    <td><a href="{{ url_for('invoice_view', invoice_id=inv.id) }}" style="color:var(--sf-primary);font-weight:600;">#INV-{{ "%04d"|format(inv.id) }}</a></td>
+                    <td>{{ inv.client_name }}</td>
+                    <td>{{ inv.created_at.strftime('%b %d, %Y') }}</td>
+                    <td style="font-weight:600;">{{ inv.currency_symbol }}{{ "%.2f"|format(inv.total_amount) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function filterTable() {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    document.querySelectorAll('#productTable tbody tr').forEach(row => {
+        row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+}
+</script>
+{% endblock %}

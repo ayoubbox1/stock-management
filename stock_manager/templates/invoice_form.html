@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+{% block title %}StockFlow – New Invoice{% endblock %}
+
+{% block content %}
+<div class="sf-topbar">
+    <h1><i class="bi bi-file-earmark-plus me-2" style="color:var(--sf-primary)"></i>Create Invoice</h1>
+    <a href="{{ url_for('invoice_list') }}" class="btn-sf outline"><i class="bi bi-arrow-left"></i> Back</a>
+</div>
+
+<div class="sf-card" style="max-width:780px;">
+    <form method="POST" id="invoiceForm">
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <label class="form-label fw-semibold">Customer (CRM)</label>
+                <select name="customer_id" class="form-select" style="border-radius:8px;" id="customerSelect" onchange="autoFillClient()">
+                    <option value="">— Walk-in / No CRM record —</option>
+                    {% for c in customers %}
+                    <option value="{{ c.id }}">{{ c.name }}{% if c.company %} — {{ c.company }}{% endif %}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-semibold">Client Name</label>
+                <input type="text" name="client_name" id="clientNameInput" class="form-control" style="border-radius:8px;"
+                       placeholder="Or type a name manually">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label fw-semibold">Currency</label>
+                <select name="currency_id" id="currencySelect" class="form-select" style="border-radius:8px;" onchange="updateCurrencySymbol()">
+                    {% for curr in currencies %}
+                    <option value="{{ curr.id }}" data-symbol="{{ curr.symbol }}" {% if curr.code == 'USD' %}selected{% endif %}>
+                        {{ curr.code }} ({{ curr.symbol }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-semibold">Fulfillment Warehouse</label>
+                <select name="warehouse_id" class="form-select" style="border-radius:8px;">
+                    {% for wh in warehouses %}
+                    <option value="{{ wh.id }}" {% if wh.is_default %}selected{% endif %}>
+                        {{ wh.name }} {% if wh.is_default %}(Default){% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <h6 class="fw-semibold mb-3"><i class="bi bi-cart3 me-1"></i> Items</h6>
+        <div id="itemRows">
+            <div class="row g-2 mb-2 align-items-end item-row">
+                <div class="col-md-5">
+                    <label class="form-label" style="font-size:.8rem;">Product</label>
+                    <select name="product_id" class="form-select" style="border-radius:8px;" onchange="updatePrice(this)">
+                        <option value="">— Select —</option>
+                        {% for p in products %}
+                        <option value="{{ p.id }}" data-price="{{ p.price }}" data-stock="{{ p.quantity }}">
+                            {{ p.name }} ({{ p.sku }}) — {{ p.quantity }} in stock
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" style="font-size:.8rem;">Qty</label>
+                    <input type="number" name="quantity" min="1" value="1" class="form-control" style="border-radius:8px;" onchange="calcTotal()" onkeyup="calcTotal()">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" style="font-size:.8rem;">Unit Price</label>
+                    <input type="text" class="form-control unit-price" style="border-radius:8px;" readonly value="—">
+                </div>
+                <div class="col-md-2">
+                    <button type="button" class="btn-sf danger btn-sm" onclick="removeRow(this)"><i class="bi bi-x-lg"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <button type="button" class="btn-sf outline mt-2 mb-4" onclick="addRow()"><i class="bi bi-plus-lg"></i> Add Item</button>
+
+        <div class="row g-3 mb-4 align-items-center">
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Discount %</label>
+                <div class="input-group" style="max-width:200px;">
+                    <input type="number" name="discount_pct" id="discountPctInput" min="0" max="100" step="0.5" value="0" class="form-control" style="border-radius:8px 0 0 8px;" onchange="calcTotal()" onkeyup="calcTotal()">
+                    <span class="input-group-text" style="border-radius:0 8px 8px 0;">%</span>
+                </div>
+            </div>
+            <div class="col-md-6 text-md-end">
+                <div style="font-size:.85rem; color:var(--sf-muted);">
+                    Subtotal: <span id="subTotalText">$0.00</span>
+                </div>
+                <div style="font-size:.85rem; color:var(--sf-danger);" id="discountRow">
+                    Discount: <span id="discountText">-$0.00</span>
+                </div>
+                <div style="font-size:1.25rem; font-weight:700; color:var(--sf-primary); margin-top:.25rem;">
+                    Total: <span id="grandTotal">$0.00</span>
+                </div>
+            </div>
+        </div>
+
+        <hr>
+        <div class="d-flex align-items-center justify-content-end gap-2">
+            <a href="{{ url_for('invoice_list') }}" class="btn-sf outline">Cancel</a>
+            <button type="submit" class="btn-sf success"><i class="bi bi-check-circle"></i> Create Invoice</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let currentSymbol = '$';
+
+function updateCurrencySymbol() {
+    const sel = document.getElementById('currencySelect');
+    if (sel && sel.selectedIndex >= 0) {
+        currentSymbol = sel.options[sel.selectedIndex].dataset.symbol || '$';
+    }
+    // Re-render price fields & totals
+    document.querySelectorAll('.item-row').forEach(row => {
+        const pSel = row.querySelector('select');
+        const pf = row.querySelector('.unit-price');
+        const opt = pSel.options[pSel.selectedIndex];
+        if (opt && opt.value) {
+            pf.value = currentSymbol + parseFloat(opt.dataset.price).toFixed(2);
+        }
+    });
+    calcTotal();
+}
+
+function autoFillClient() {
+    const sel = document.getElementById('customerSelect');
+    const inp = document.getElementById('clientNameInput');
+    if (sel.value) {
+        inp.value = sel.options[sel.selectedIndex].text.split(' — ')[0].trim();
+        inp.readOnly = true;
+    } else {
+        inp.value = '';
+        inp.readOnly = false;
+    }
+}
+
+function addRow() {
+    const template = document.querySelector('.item-row');
+    const clone = template.cloneNode(true);
+    clone.querySelector('select').value = '';
+    clone.querySelector('input[name="quantity"]').value = 1;
+    clone.querySelector('.unit-price').value = '—';
+    document.getElementById('itemRows').appendChild(clone);
+}
+
+function removeRow(btn) {
+    if (document.querySelectorAll('.item-row').length > 1) {
+        btn.closest('.item-row').remove();
+        calcTotal();
+    }
+}
+
+function updatePrice(sel) {
+    const opt = sel.options[sel.selectedIndex];
+    const pf = sel.closest('.item-row').querySelector('.unit-price');
+    pf.value = opt.value ? currentSymbol + parseFloat(opt.dataset.price).toFixed(2) : '—';
+    calcTotal();
+}
+
+function calcTotal() {
+    let subtotal = 0;
+    document.querySelectorAll('.item-row').forEach(row => {
+        const sel = row.querySelector('select');
+        const qty = parseInt(row.querySelector('input[name="quantity"]').value) || 0;
+        const opt = sel.options[sel.selectedIndex];
+        if (opt && opt.value) {
+            subtotal += qty * parseFloat(opt.dataset.price);
+        }
+    });
+
+    const discInput = document.getElementById('discountPctInput');
+    let discPct = parseFloat(discInput.value) || 0;
+    if (discPct < 0) discPct = 0;
+    if (discPct > 100) discPct = 100;
+
+    const discountAmount = subtotal * (discPct / 100);
+    const grandTotal = Math.max(0, subtotal - discountAmount);
+
+    document.getElementById('subTotalText').textContent = currentSymbol + subtotal.toFixed(2);
+    document.getElementById('discountText').textContent = '-' + currentSymbol + discountAmount.toFixed(2);
+    document.getElementById('grandTotal').textContent = currentSymbol + grandTotal.toFixed(2);
+}
+
+document.addEventListener('DOMContentLoaded', updateCurrencySymbol);
+</script>
+{% endblock %}

@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}StockFlow – Suppliers{% endblock %}
+
+{% block content %}
+<div class="sf-topbar">
+    <h1><i class="bi bi-truck me-2" style="color:var(--sf-primary)"></i>Suppliers</h1>
+    <a href="{{ url_for('supplier_create') }}" class="btn-sf primary"><i class="bi bi-plus-lg"></i> Add Supplier</a>
+</div>
+
+<div class="sf-card">
+    {% if suppliers %}
+    <div class="table-responsive">
+        <table class="sf-table">
+            <thead>
+                <tr>
+                    <th style="width:50px;"></th>
+                    <th>Supplier Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Address</th>
+                    <th>Products Supplied</th>
+                    <th style="text-align:right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set colors = ['blue','green','amber','red','cyan'] %}
+                {% for s in suppliers %}
+                <tr>
+                    <td>
+                        <div class="avatar {{ colors[loop.index0 % 5] }}">{{ s.initials }}</div>
+                    </td>
+                    <td>
+                        <a href="{{ url_for('supplier_detail', sid=s.id) }}" style="font-weight:600; color:var(--sf-text); text-decoration:none;">
+                            {{ s.name }}
+                        </a>
+                    </td>
+                    <td>{{ s.email or '—' }}</td>
+                    <td>{{ s.phone or '—' }}</td>
+                    <td>{{ s.address or '—' }}</td>
+                    <td><span class="badge rounded-pill bg-light text-dark border">{{ s.products|length }}</span></td>
+                    <td style="text-align:right;">
+                        <a href="{{ url_for('supplier_detail', sid=s.id) }}" class="btn-sf outline btn-sm" title="View"><i class="bi bi-eye"></i></a>
+                        <a href="{{ url_for('supplier_edit', sid=s.id) }}" class="btn-sf outline btn-sm" title="Edit"><i class="bi bi-pencil"></i></a>
+                        <form action="{{ url_for('supplier_delete', sid=s.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Delete supplier {{ s.name }}?')">
+                            <button type="submit" class="btn-sf danger btn-sm" title="Delete"><i class="bi bi-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+        <i class="bi bi-truck" style="font-size:2.5rem;"></i>
+        <p class="mt-2 mb-0">No suppliers found. <a href="{{ url_for('supplier_create') }}">Add your first supplier</a>.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

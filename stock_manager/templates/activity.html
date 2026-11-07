@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block title %}StockFlow – Activity Log{% endblock %}
+
+{% block extra_head %}
+<style>
+    .timeline {
+        position: relative;
+        padding-left: 2rem;
+    }
+    .timeline::before {
+        content: '';
+        position: absolute;
+        top: 10px;
+        bottom: 10px;
+        left: 15px;
+        width: 2px;
+        background: var(--sf-border);
+    }
+    .timeline-item {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+    .timeline-marker {
+        position: absolute;
+        left: -2rem;
+        top: 2px;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--sf-card);
+        border: 2px solid var(--sf-primary);
+        color: var(--sf-primary);
+        font-size: .85rem;
+        z-index: 2;
+    }
+    .timeline-content {
+        background: var(--sf-card);
+        border: 1px solid var(--sf-border);
+        border-radius: 10px;
+        padding: 0.9rem 1.25rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,.03);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="sf-topbar">
+    <h1><i class="bi bi-clock-history me-2" style="color:var(--sf-primary)"></i>Activity Log & Audit Trail</h1>
+</div>
+
+<div class="sf-card mb-4" style="max-width: 900px;">
+    {% if pagination.items %}
+    <div class="timeline mt-2">
+        {% for log in pagination.items %}
+        <div class="timeline-item">
+            <div class="timeline-marker">
+                {% if log.entity_type == 'Product' %}
+                    <i class="bi bi-box-seam"></i>
+                {% elif log.entity_type == 'Invoice' %}
+                    <i class="bi bi-receipt"></i>
+                {% elif log.entity_type == 'PurchaseOrder' %}
+                    <i class="bi bi-cart-check"></i>
+                {% elif log.entity_type == 'Customer' %}
+                    <i class="bi bi-people"></i>
+                {% elif log.entity_type == 'Supplier' %}
+                    <i class="bi bi-truck"></i>
+                {% elif log.entity_type == 'Tag' %}
+                    <i class="bi bi-tags"></i>
+                {% elif log.entity_type == 'Return' %}
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                {% elif log.entity_type == 'User' %}
+                    <i class="bi bi-person"></i>
+                {% else %}
+                    <i class="bi bi-activity"></i>
+                {% endif %}
+            </div>
+            <div class="timeline-content">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-1">
+                    <div class="d-flex align-items-center gap-2">
+                        {% if log.user %}
+                            <div class="avatar sm blue" style="width:26px; height:26px; font-size:.7rem;">
+                                {{ log.user.initials }}
+                            </div>
+                            <span class="fw-semibold" style="font-size:.88rem;">{{ log.user.username }}</span>
+                        {% else %}
+                            <div class="avatar sm" style="width:26px; height:26px; font-size:.7rem; background:#64748b;">
+                                S
+                            </div>
+                            <span class="fw-semibold text-muted" style="font-size:.88rem;">System</span>
+                        {% endif %}
+                        <span class="text-muted" style="font-size:.85rem;">&bull;</span>
+                        <span class="fw-medium" style="font-size:.88rem;">{{ log.action }}</span>
+                    </div>
+                    <small class="text-muted" style="font-size:.78rem;">
+                        <i class="bi bi-clock me-1"></i>{{ log.timestamp.strftime('%b %d, %Y %H:%M') if log.timestamp else '—' }}
+                    </small>
+                </div>
+
+                {% if log.entity_name %}
+                <div class="mt-1" style="font-size:.82rem;">
+                    <span class="text-muted">{{ log.entity_type }}:</span>
+                    {% if log.entity_type == 'Product' and log.entity_id %}
+                        <a href="{{ url_for('product_edit', pid=log.entity_id) }}" class="fw-semibold text-decoration-none" style="color:var(--sf-primary);">
+                            {{ log.entity_name }}
+                        </a>
+                    {% elif log.entity_type == 'Invoice' and log.entity_id %}
+                        <a href="{{ url_for('invoice_view', invoice_id=log.entity_id) }}" class="fw-semibold text-decoration-none" style="color:var(--sf-primary);">
+                            {{ log.entity_name }}
+                        </a>
+                    {% elif log.entity_type == 'PurchaseOrder' and log.entity_id %}
+                        <a href="{{ url_for('purchase_order_detail', poid=log.entity_id) }}" class="fw-semibold text-decoration-none" style="color:var(--sf-primary);">
+                            {{ log.entity_name }}
+                        </a>
+                    {% elif log.entity_type == 'Customer' and log.entity_id %}
+                        <a href="{{ url_for('customer_detail', cid=log.entity_id) }}" class="fw-semibold text-decoration-none" style="color:var(--sf-primary);">
+                            {{ log.entity_name }}
+                        </a>
+                    {% elif log.entity_type == 'Supplier' and log.entity_id %}
+                        <a href="{{ url_for('supplier_detail', sid=log.entity_id) }}" class="fw-semibold text-decoration-none" style="color:var(--sf-primary);">
+                            {{ log.entity_name }}
+                        </a>
+                    {% else %}
+                        <span class="fw-semibold">{{ log.entity_name }}</span>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if pagination.pages > 1 %}
+    <nav class="d-flex justify-content-center mt-4">
+        <ul class="pagination pagination-sm m-0">
+            <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('activity_log', page=pagination.prev_num) if pagination.has_prev else '#' }}">Previous</a>
+            </li>
+            {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                {% if p %}
+                    <li class="page-item {% if p == pagination.page %}active{% endif %}">
+                        <a class="page-link" href="{{ url_for('activity_log', page=p) }}">{{ p }}</a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+                {% endif %}
+            {% endfor %}
+            <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('activity_log', page=pagination.next_num) if pagination.has_next else '#' }}">Next</a>
+            </li>
+        </ul>
+    </nav>
+    {% endif %}
+
+    {% else %}
+    <div class="text-center py-5 text-muted">
+        <i class="bi bi-clock-history" style="font-size:2.5rem;"></i>
+        <h5 class="mt-2 mb-0">No activity logged yet</h5>
+        <p class="small text-muted mt-1">Actions taken across the app will appear here in chronological order.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

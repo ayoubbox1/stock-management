@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}StockFlow – Stock Transfer History{% endblock %}
+
+{% block content %}
+<div class="sf-topbar">
+    <div>
+        <h1><i class="bi bi-clock-history me-2" style="color:var(--sf-primary)"></i>Inter-Warehouse Transfer History</h1>
+        <p class="text-muted mb-0" style="font-size:.85rem;">Audit log of all stock movements between warehouses.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('warehouse_list') }}" class="btn-sf outline"><i class="bi bi-buildings"></i> Warehouses</a>
+        <a href="{{ url_for('warehouse_transfer_create') }}" class="btn-sf primary"><i class="bi bi-shuffle"></i> New Transfer</a>
+    </div>
+</div>
+
+<div class="sf-card">
+    <div class="table-responsive">
+        <table class="sf-table">
+            <thead>
+                <tr>
+                    <th style="width:16%;">Timestamp</th>
+                    <th style="width:18%;">Origin (From)</th>
+                    <th style="width:18%;">Destination (To)</th>
+                    <th style="width:25%;">Product Transferred</th>
+                    <th style="text-align:center; width:10%;">Quantity</th>
+                    <th style="text-align:right; width:13%;">Executed By</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in transfers %}
+                <tr>
+                    <td>
+                        <div style="font-weight:600; font-size:.85rem;">{{ t.created_at.strftime('%Y-%m-%d') }}</div>
+                        <div style="font-size:.75rem; color:var(--sf-muted);">{{ t.created_at.strftime('%H:%M:%S') }} UTC</div>
+                    </td>
+                    <td>
+                        <span class="badge bg-light text-dark border">
+                            <i class="bi bi-building me-1"></i>{{ t.from_warehouse.name if t.from_warehouse else '—' }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge bg-light text-dark border">
+                            <i class="bi bi-building me-1"></i>{{ t.to_warehouse.name if t.to_warehouse else '—' }}
+                        </span>
+                    </td>
+                    <td>
+                        <div style="font-weight:600;">{{ t.product.name if t.product else '—' }}</div>
+                        {% if t.product and t.product.sku %}
+                        <div style="font-size:.75rem; color:var(--sf-muted);">SKU: <code>{{ t.product.sku }}</code></div>
+                        {% endif %}
+                    </td>
+                    <td style="text-align:center;">
+                        <span class="badge bg-primary rounded-pill px-3 py-1" style="font-size:.85rem;">
+                            {{ t.quantity }} units
+                        </span>
+                    </td>
+                    <td style="text-align:right;">
+                        {% if t.user %}
+                        <span class="badge bg-secondary" style="font-size:.75rem;">{{ t.user.username }}</span>
+                        {% else %}
+                        <span class="text-muted" style="font-size:.78rem;">System</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-5">
+                        <i class="bi bi-arrow-left-right" style="font-size:2.5rem; opacity:0.4; display:block; margin-bottom:8px;"></i>
+                        No stock transfers recorded yet.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

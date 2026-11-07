@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}StockFlow – {{ "Edit" if category else "New" }} Category{% endblock %}
+
+{% block content %}
+<div class="sf-topbar">
+    <h1>
+        <i class="bi bi-{{ 'pencil' if category else 'plus-circle' }} me-2" style="color:var(--sf-primary)"></i>
+        {{ "Edit Category" if category else "New Category" }}
+    </h1>
+    <a href="{{ url_for('category_list') }}" class="btn-sf outline"><i class="bi bi-arrow-left"></i> Back</a>
+</div>
+
+<div class="sf-card" style="max-width:540px;">
+    <form method="POST">
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Category Name *</label>
+            <input type="text" name="name" class="form-control" style="border-radius:8px;" required
+                   value="{{ category.name if category else '' }}" placeholder="e.g. Electronics">
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Color (Hex)</label>
+                <div class="d-flex align-items-center gap-2">
+                    <input type="color" id="colorPicker" value="{{ category.color if category else '#4f46e5' }}"
+                           class="form-control form-control-color" style="width:48px; height:38px; padding:3px; border-radius:8px;"
+                           onchange="document.getElementById('colorInput').value = this.value; updatePreview();">
+                    <input type="text" name="color" id="colorInput" class="form-control" style="border-radius:8px;"
+                           value="{{ category.color if category else '#4f46e5' }}" placeholder="#4f46e5"
+                           onkeyup="document.getElementById('colorPicker').value = this.value; updatePreview();">
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Icon (Bootstrap Icon)</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i id="iconPreview" class="bi {{ category.icon if category else 'bi-tag' }}"></i></span>
+                    <input type="text" name="icon" id="iconInput" class="form-control" style="border-radius:0 8px 8px 0;"
+                           value="{{ category.icon if category else 'bi-tag' }}" placeholder="bi-tag"
+                           onkeyup="updatePreview()">
+                </div>
+                <small class="text-muted" style="font-size:.75rem;">e.g. bi-tag, bi-laptop, bi-box, bi-basket, bi-gear</small>
+            </div>
+        </div>
+
+        <!-- Live Badge Preview -->
+        <div class="mb-4 p-3 rounded" style="background:var(--sf-bg); border:1px dashed var(--sf-border);">
+            <small class="text-muted d-block mb-1">Badge Preview:</small>
+            <span id="badgePreview" class="badge" style="background-color:{{ category.color if category else '#4f46e5' }}; color:#fff; font-size:.9rem; padding:.4em .8em; border-radius:6px;">
+                <i id="badgeIcon" class="bi {{ category.icon if category else 'bi-tag' }} me-1"></i>
+                <span id="badgeText">{{ category.name if category else 'Category Name' }}</span>
+            </span>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn-sf primary"><i class="bi bi-check-lg"></i> {{ "Update" if category else "Create" }}</button>
+            <a href="{{ url_for('category_list') }}" class="btn-sf outline">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function updatePreview() {
+    const color = document.getElementById('colorInput').value || '#4f46e5';
+    const icon = document.getElementById('iconInput').value || 'bi-tag';
+    const name = document.querySelector('input[name="name"]').value || 'Category Name';
+
+    const iconPreview = document.getElementById('iconPreview');
+    iconPreview.className = 'bi ' + icon;
+
+    const badgeIcon = document.getElementById('badgeIcon');
+    badgeIcon.className = 'bi ' + icon + ' me-1';
+
+    const badgePreview = document.getElementById('badgePreview');
+    badgePreview.style.backgroundColor = color;
+
+    const badgeText = document.getElementById('badgeText');
+    badgeText.textContent = name;
+}
+document.querySelector('input[name="name"]').addEventListener('input', updatePreview);
+</script>
+{% endblock %}

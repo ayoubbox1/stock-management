@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}StockFlow – Manage Stock: {{ warehouse.name }}{% endblock %}
+
+{% block content %}
+<div class="sf-topbar">
+    <div>
+        <h1><i class="bi bi-sliders me-2" style="color:var(--sf-primary)"></i>Manage Stock Levels: {{ warehouse.name }}</h1>
+        <p class="text-muted mb-0" style="font-size:.85rem;">Directly set or audit on-hand inventory units for products in this facility.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('warehouse_detail', wid=warehouse.id) }}" class="btn-sf outline"><i class="bi bi-arrow-left"></i> Back to Warehouse</a>
+    </div>
+</div>
+
+<div class="sf-card">
+    <form method="POST">
+        <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+            <div class="text-muted" style="font-size:.85rem;">
+                Enter verified physical counts. Total product inventory across all locations will update automatically.
+            </div>
+            <button type="submit" class="btn-sf success">
+                <i class="bi bi-check-circle"></i> Save All Stock Levels
+            </button>
+        </div>
+
+        <div class="table-responsive">
+            <table class="sf-table">
+                <thead>
+                    <tr>
+                        <th style="width:50px;"></th>
+                        <th>Product Name</th>
+                        <th>SKU</th>
+                        <th>Category</th>
+                        <th style="text-align:center; width:160px;">Quantity in {{ warehouse.name }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in product_stock_items %}
+                    <tr>
+                        <td>
+                            {% if item.product.image_url %}
+                                <img src="{{ item.product.image_url }}" class="product-thumb" alt="{{ item.product.name }}">
+                            {% else %}
+                                <div class="product-thumb-placeholder"><i class="bi bi-image"></i></div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div style="font-weight:600;">{{ item.product.name }}</div>
+                            <div style="font-size:.78rem; color:var(--sf-muted);">Price: ${{ "%.2f"|format(item.product.price) }}</div>
+                        </td>
+                        <td><code>{{ item.product.sku }}</code></td>
+                        <td>
+                            {% if item.product.category %}
+                                <span class="badge" style="background-color:{{ item.product.category.color }}; color:#fff; font-size:.75rem;">
+                                    {{ item.product.category.name }}
+                                </span>
+                            {% else %}
+                                <span style="color:var(--sf-muted); font-size:.8rem;">—</span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align:center;">
+                            <input type="hidden" name="product_ids" value="{{ item.product.id }}">
+                            <input type="number" name="quantities" min="0" value="{{ item.quantity }}"
+                                   class="form-control form-control-sm text-center fw-bold"
+                                   style="max-width:110px; margin:0 auto; border-radius:6px;">
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="d-flex align-items-center justify-content-end gap-2 mt-4 pt-3 border-top">
+            <a href="{{ url_for('warehouse_detail', wid=warehouse.id) }}" class="btn-sf outline">Cancel</a>
+            <button type="submit" class="btn-sf success">
+                <i class="bi bi-check-circle"></i> Save All Stock Levels
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

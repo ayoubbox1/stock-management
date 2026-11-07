@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}StockFlow – Scheduled Tasks & Automation{% endblock %}
+
+{% block content %}
+<div class="sf-topbar">
+    <div>
+        <h1><i class="bi bi-clock-history me-2" style="color:var(--sf-primary)"></i>Background Schedules & Crons</h1>
+        <p class="text-muted mb-0" style="font-size:.85rem;">Manage automated background tasks powered by APScheduler.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('settings_email') }}" class="btn-sf outline"><i class="bi bi-envelope"></i> Email Settings</a>
+    </div>
+</div>
+
+<div class="sf-card mb-4">
+    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <div>
+            <h5 class="fw-semibold mb-1">Active Automation Jobs</h5>
+            <p class="text-muted mb-0" style="font-size:.82rem;">Scheduled jobs execute in non-blocking background threads within Flask app context.</p>
+        </div>
+        <div>
+            <span class="badge bg-success px-3 py-2" style="font-size:.78rem; font-weight:600;">
+                <i class="bi bi-cpu me-1"></i> APScheduler Engine Running
+            </span>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="sf-table">
+            <thead>
+                <tr>
+                    <th style="width:25%;">Job Name & Purpose</th>
+                    <th style="width:15%;">Cadence / Cron</th>
+                    <th style="width:15%;">Next Scheduled Run</th>
+                    <th style="width:18%;">Last Execution & Status</th>
+                    <th style="text-align:center; width:12%;">State</th>
+                    <th style="text-align:right; width:15%;">Manual Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for job in jobs %}
+                <tr>
+                    <td>
+                        <div style="font-weight:600;">{{ job.name }}</div>
+                        <div style="font-size:.78rem; color:var(--sf-muted);">{{ job.description }}</div>
+                    </td>
+                    <td>
+                        <span class="badge bg-light text-dark border">
+                            <i class="bi bi-calendar3 me-1"></i>{{ job.cron_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <div style="font-size:.85rem; font-weight:500;">
+                            {% if job.next_run %}
+                                {{ job.next_run }}
+                            {% else %}
+                                <span class="text-muted">Paused / Inactive</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        <div style="font-size:.82rem;">
+                            {% if job.last_run %}
+                                <strong>{{ job.last_run.strftime('%Y-%m-%d %H:%M') }}</strong>
+                            {% else %}
+                                <span class="text-muted">Never run</span>
+                            {% endif %}
+                        </div>
+                        <div style="font-size:.75rem;">
+                            {% if 'Success' in job.last_status or 'Completed' in job.last_status %}
+                                <span class="text-success"><i class="bi bi-check-circle me-1"></i>{{ job.last_status }}</span>
+                            {% elif 'Error' in job.last_status or 'Failed' in job.last_status %}
+                                <span class="text-danger"><i class="bi bi-exclamation-circle me-1"></i>{{ job.last_status }}</span>
+                            {% else %}
+                                <span class="text-muted">{{ job.last_status }}</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td style="text-align:center;">
+                        <form action="{{ url_for('settings_schedule_toggle', job_id=job.job_id) }}" method="POST" style="display:inline;">
+                            {% if job.enabled %}
+                            <button type="submit" class="btn btn-sm btn-success" style="font-size:.75rem; border-radius:6px;" title="Click to disable job">
+                                <i class="bi bi-toggle-on me-1"></i> Enabled
+                            </button>
+                            {% else %}
+                            <button type="submit" class="btn btn-sm btn-outline-secondary" style="font-size:.75rem; border-radius:6px;" title="Click to enable job">
+                                <i class="bi bi-toggle-off me-1"></i> Disabled
+                            </button>
+                            {% endif %}
+                        </form>
+                    </td>
+                    <td style="text-align:right;">
+                        <form action="{{ url_for('settings_schedule_run', job_id=job.job_id) }}" method="POST" style="display:inline;">
+                            <button type="submit" class="btn-sf primary btn-sm" title="Execute this job immediately">
+                                <i class="bi bi-play-fill"></i> Run Now
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-6">
+        <div class="sf-card">
+            <h6 class="fw-semibold mb-2"><i class="bi bi-bell me-2" style="color:var(--sf-warning)"></i>Daily Low-Stock Alert Job</h6>
+            <p class="text-muted mb-0" style="font-size:.82rem; line-height:1.6;">
+                Runs every morning at 8:00 AM. Scans all products with quantity &le; 10 units across all warehouses. If any low, critical, or out-of-stock items exist, it formats and sends a digest email to all administrator accounts with registered email addresses.
+            </p>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="sf-card">
+            <h6 class="fw-semibold mb-2"><i class="bi bi-graph-up-arrow me-2" style="color:var(--sf-info)"></i>Weekly Sales & Inventory Digest</h6>
+            <p class="text-muted mb-0" style="font-size:.82rem; line-height:1.6;">
+                Runs every Monday at 9:00 AM. Calculates trailing 7-day revenue, invoice order counts, top 3 selling inventory products, and newly registered CRM accounts, emailing an executive overview to administrators.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

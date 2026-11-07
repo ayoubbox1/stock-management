@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 24px; color: #1e293b; }
+  .email-container { max-width: 650px; margin: 0 auto; background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+  .header { background: #ef4444; padding: 28px 24px; color: #ffffff; text-align: left; }
+  .header h1 { margin: 0 0 6px; font-size: 22px; font-weight: 700; }
+  .header p { margin: 0; opacity: 0.95; font-size: 14px; }
+  .content { padding: 24px; }
+  .section-title { font-size: 15px; font-weight: 700; margin: 20px 0 10px; display: flex; align-items: center; gap: 8px; }
+  .badge-danger { background: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 9999px; font-size: 11px; font-weight: 600; }
+  .badge-warning { background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 9999px; font-size: 11px; font-weight: 600; }
+  .badge-info { background: #e0f2fe; color: #075985; padding: 2px 8px; border-radius: 9999px; font-size: 11px; font-weight: 600; }
+  table.stock-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 13px; }
+  table.stock-table th { background: #f1f5f9; text-align: left; padding: 8px 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #475569; border-bottom: 1px solid #e2e8f0; }
+  table.stock-table td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; }
+  .tag { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 11px; color: #fff; }
+  .footer { background: #f8fafc; padding: 18px 24px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0; }
+  .stat-grid { display: flex; gap: 12px; margin-bottom: 20px; }
+  .stat-card { flex: 1; padding: 12px; border-radius: 8px; text-align: center; border: 1px solid #e2e8f0; }
+</style>
+</head>
+<body>
+<div class="email-container">
+  <div class="header">
+    <h1>StockFlow Alert: Low-Stock Digest</h1>
+    <p>Automated Inventory Alert &bull; {{ total_alerts }} product(s) require reordering or restocking</p>
+  </div>
+  <div class="content">
+    <table style="width:100%; margin-bottom: 20px; border-spacing: 8px;">
+      <tr>
+        <td style="background:#fee2e2; border:1px solid #fca5a5; border-radius:8px; padding:12px; text-align:center;">
+          <div style="font-size:20px; font-weight:700; color:#991b1b;">{{ out_of_stock|length }}</div>
+          <div style="font-size:12px; color:#991b1b;">Out of Stock (0)</div>
+        </td>
+        <td style="background:#fef3c7; border:1px solid #fde68a; border-radius:8px; padding:12px; text-align:center;">
+          <div style="font-size:20px; font-weight:700; color:#92400e;">{{ critical|length }}</div>
+          <div style="font-size:12px; color:#92400e;">Critical (1–5)</div>
+        </td>
+        <td style="background:#e0f2fe; border:1px solid #bae6fd; border-radius:8px; padding:12px; text-align:center;">
+          <div style="font-size:20px; font-weight:700; color:#075985;">{{ low|length }}</div>
+          <div style="font-size:12px; color:#075985;">Low Stock (6–10)</div>
+        </td>
+      </tr>
+    </table>
+
+    {% if out_of_stock %}
+    <div class="section-title" style="color:#991b1b;">
+      Out of Stock Products (0 units) <span class="badge-danger">{{ out_of_stock|length }}</span>
+    </div>
+    <table class="stock-table">
+      <thead>
+        <tr>
+          <th>Product Name</th>
+          <th>SKU</th>
+          <th>Category</th>
+          <th style="text-align:right;">Stock</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in out_of_stock %}
+        <tr>
+          <td><strong>{{ p.name }}</strong></td>
+          <td><code>{{ p.sku }}</code></td>
+          <td>{{ p.category.name if p.category else '—' }}</td>
+          <td style="text-align:right;"><span class="badge-danger">0 units</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+
+    {% if critical %}
+    <div class="section-title" style="color:#92400e;">
+      Critical Stock (1 to 5 units) <span class="badge-warning">{{ critical|length }}</span>
+    </div>
+    <table class="stock-table">
+      <thead>
+        <tr>
+          <th>Product Name</th>
+          <th>SKU</th>
+          <th>Category</th>
+          <th style="text-align:right;">Stock</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in critical %}
+        <tr>
+          <td><strong>{{ p.name }}</strong></td>
+          <td><code>{{ p.sku }}</code></td>
+          <td>{{ p.category.name if p.category else '—' }}</td>
+          <td style="text-align:right;"><span class="badge-warning">{{ p.quantity }} units</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+
+    {% if low %}
+    <div class="section-title" style="color:#075985;">
+      Low Stock (6 to 10 units) <span class="badge-info">{{ low|length }}</span>
+    </div>
+    <table class="stock-table">
+      <thead>
+        <tr>
+          <th>Product Name</th>
+          <th>SKU</th>
+          <th>Category</th>
+          <th style="text-align:right;">Stock</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in low %}
+        <tr>
+          <td><strong>{{ p.name }}</strong></td>
+          <td><code>{{ p.sku }}</code></td>
+          <td>{{ p.category.name if p.category else '—' }}</td>
+          <td style="text-align:right;"><span class="badge-info">{{ p.quantity }} units</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+
+    <div style="text-align: center; margin-top: 24px;">
+      <p style="font-size:13px; color:#64748b;">Please log in to StockFlow to review purchase orders or create replenishment orders.</p>
+    </div>
+  </div>
+  <div class="footer">
+    StockFlow Automated Inventory Monitor &bull; Alert sent to Administrator
+  </div>
+</div>
+</body>
+</html>

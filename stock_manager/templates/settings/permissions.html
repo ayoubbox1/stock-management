@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}StockFlow – Role & Permission Matrix{% endblock %}
+
+{% block content %}
+<div class="sf-topbar">
+    <div>
+        <h1><i class="bi bi-shield-check me-2" style="color:var(--sf-primary)"></i>Role-Based Permissions Matrix</h1>
+        <p class="text-muted mb-0" style="font-size:.85rem;">Access control policy overview across Admin, Manager, and Staff user tiers.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('user_list') }}" class="btn-sf primary"><i class="bi bi-people"></i> Manage Users</a>
+    </div>
+</div>
+
+<div class="sf-card mb-4">
+    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <div>
+            <h5 class="fw-semibold mb-1">Access Control Table</h5>
+            <p class="text-muted mb-0" style="font-size:.82rem;">Permissions enforced by backend route decorators (`@require_permission`) and dynamic UI visibility.</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge badge-role admin">Admin (Full Control)</span>
+            <span class="badge badge-role manager">Manager</span>
+            <span class="badge badge-role staff">Staff</span>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="sf-table">
+            <thead>
+                <tr>
+                    <th style="width:30%;">Capability / Permission</th>
+                    <th style="width:25%;">Code / Key</th>
+                    <th style="text-align:center; width:15%;">Admin</th>
+                    <th style="text-align:center; width:15%;">Manager</th>
+                    <th style="text-align:center; width:15%;">Staff</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for perm_key, perm_label, perm_desc in perm_definitions %}
+                <tr>
+                    <td>
+                        <div style="font-weight:600;">{{ perm_label }}</div>
+                        <div style="font-size:.78rem; color:var(--sf-muted);">{{ perm_desc }}</div>
+                    </td>
+                    <td><code>{{ perm_key }}</code></td>
+                    <td style="text-align:center;">
+                        <i class="bi bi-check-circle-fill text-success" style="font-size:1.1rem;" title="Granted"></i>
+                    </td>
+                    <td style="text-align:center;">
+                        {% if 'all' in permissions['manager'] or perm_key in permissions['manager'] %}
+                            <i class="bi bi-check-circle-fill text-success" style="font-size:1.1rem;" title="Granted"></i>
+                        {% else %}
+                            <i class="bi bi-dash-circle text-muted" style="font-size:1.1rem; opacity:.4;" title="Denied"></i>
+                        {% endif %}
+                    </td>
+                    <td style="text-align:center;">
+                        {% if 'all' in permissions['staff'] or perm_key in permissions['staff'] %}
+                            <i class="bi bi-check-circle-fill text-success" style="font-size:1.1rem;" title="Granted"></i>
+                        {% else %}
+                            <i class="bi bi-dash-circle text-muted" style="font-size:1.1rem; opacity:.4;" title="Denied"></i>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-4">
+        <div class="sf-card" style="border-top: 4px solid #7e22ce;">
+            <div class="d-flex align-items-center gap-2 mb-2">
+                <span class="badge-role admin">Admin</span>
+                <span class="fw-semibold">Administrator</span>
+            </div>
+            <p class="text-muted" style="font-size:.82rem; line-height:1.5;">
+                Full system access with wild-card (<code>'all'</code>). Can manage users, assign roles, configure SMTP, view and control APScheduler jobs, edit permissions, and delete any resource.
+            </p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="sf-card" style="border-top: 4px solid #1d4ed8;">
+            <div class="d-flex align-items-center gap-2 mb-2">
+                <span class="badge-role manager">Manager</span>
+                <span class="fw-semibold">Store / Operations Manager</span>
+            </div>
+            <p class="text-muted" style="font-size:.82rem; line-height:1.5;">
+                Can view all records, create and edit inventory, delete products and customers, view analytics reports, receive purchase orders, approve/reject customer returns, and export CSVs.
+            </p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="sf-card" style="border-top: 4px solid #475569;">
+            <div class="d-flex align-items-center gap-2 mb-2">
+                <span class="badge-role staff">Staff</span>
+                <span class="fw-semibold">Frontline Staff</span>
+            </div>
+            <p class="text-muted" style="font-size:.82rem; line-height:1.5;">
+                Can view products, create new invoices, record customers, scan barcodes, and export data. Cannot delete critical records, view executive analytics, manage system settings, or approve refunds.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

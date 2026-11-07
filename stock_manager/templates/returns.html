@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}StockFlow – Returns & Refunds{% endblock %}
+
+{% block content %}
+<div class="sf-topbar">
+    <h1><i class="bi bi-arrow-counterclockwise me-2" style="color:var(--sf-primary)"></i>Returns & Refunds</h1>
+</div>
+
+<div class="sf-card">
+    {% if returns %}
+    <div class="table-responsive">
+        <table class="sf-table">
+            <thead>
+                <tr>
+                    <th>Return #</th>
+                    <th>Invoice</th>
+                    <th>Customer / Client</th>
+                    <th>Date</th>
+                    <th>Reason</th>
+                    <th>Refund Amount</th>
+                    <th>Status</th>
+                    <th style="text-align:right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ret in returns %}
+                <tr>
+                    <td class="fw-bold">#RET-{{ "%04d"|format(ret.id) }}</td>
+                    <td>
+                        <a href="{{ url_for('invoice_view', invoice_id=ret.invoice.id) }}" style="color:var(--sf-primary); font-weight:600;">
+                            #INV-{{ "%04d"|format(ret.invoice.id) }}
+                        </a>
+                    </td>
+                    <td>{{ ret.invoice.client_name }}</td>
+                    <td>{{ ret.created_at.strftime('%b %d, %Y') if ret.created_at else '—' }}</td>
+                    <td style="max-width:240px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="{{ ret.reason }}">
+                        {{ ret.reason }}
+                    </td>
+                    <td class="fw-bold text-danger">
+                        {{ ret.invoice.currency_symbol }}{{ "%.2f"|format(ret.refund_amount) }}
+                    </td>
+                    <td>
+                        <span class="badge-return {{ ret.status }}">{{ ret.status }}</span>
+                    </td>
+                    <td style="text-align:right;">
+                        {% if ret.status == 'pending' %}
+                        <form action="{{ url_for('return_approve', rid=ret.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Approve return #{{ ret.id }}? Returned items will be added back to stock.')">
+                            <button type="submit" class="btn-sf success btn-sm" title="Approve & Restock">
+                                <i class="bi bi-check-lg"></i> Approve
+                            </button>
+                        </form>
+                        <form action="{{ url_for('return_reject', rid=ret.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Reject return #{{ ret.id }}?')">
+                            <button type="submit" class="btn-sf danger btn-sm" title="Reject">
+                                <i class="bi bi-x-lg"></i> Reject
+                            </button>
+                        </form>
+                        {% else %}
+                            <span class="text-muted small">Processed</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+        <i class="bi bi-arrow-counterclockwise" style="font-size:2.5rem;"></i>
+        <h5 class="mt-2 mb-1">No return requests</h5>
+        <p class="mb-0">Return requests submitted from invoices will be listed here for approval and restocking.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

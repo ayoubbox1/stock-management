@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 24px; color: #1e293b; }
+  .email-container { max-width: 620px; margin: 0 auto; background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+  .header { background: linear-gradient(135deg, #4f46e5, #9333ea); padding: 32px 24px; color: #ffffff; text-align: left; }
+  .header h1 { margin: 0 0 6px; font-size: 22px; font-weight: 700; }
+  .header p { margin: 0; opacity: 0.95; font-size: 14px; }
+  .content { padding: 28px 24px; }
+  .stat-grid { width: 100%; border-spacing: 10px; margin-bottom: 24px; }
+  .stat-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; text-align: center; }
+  .stat-val { font-size: 24px; font-weight: 700; color: #4f46e5; margin-bottom: 4px; }
+  .stat-label { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
+  .section-title { font-size: 15px; font-weight: 700; margin: 24px 0 12px; color: #1e293b; }
+  table.simple-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px; }
+  table.simple-table th { background: #f1f5f9; text-align: left; padding: 10px 12px; font-size: 11px; text-transform: uppercase; color: #475569; }
+  table.simple-table td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; }
+  .footer { background: #f8fafc; padding: 18px 24px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0; }
+</style>
+</head>
+<body>
+<div class="email-container">
+  <div class="header">
+    <h1>Weekly Executive Summary</h1>
+    <p>StockFlow Business & Inventory Highlights ({{ start_date }} &ndash; {{ end_date }})</p>
+  </div>
+  <div class="content">
+    <table class="stat-grid">
+      <tr>
+        <td class="stat-card" style="width: 50%;">
+          <div class="stat-val">${{ "%.2f"|format(total_revenue) }}</div>
+          <div class="stat-label">Total Revenue This Week</div>
+        </td>
+        <td class="stat-card" style="width: 50%;">
+          <div class="stat-val" style="color:#10b981;">{{ invoices_count }}</div>
+          <div class="stat-label">Invoices Created</div>
+        </td>
+      </tr>
+      <tr>
+        <td class="stat-card" style="width: 50%;">
+          <div class="stat-val" style="color:#0284c7;">{{ new_customers_count }}</div>
+          <div class="stat-label">New Customers</div>
+        </td>
+        <td class="stat-card" style="width: 50%;">
+          <div class="stat-val" style="color:#f59e0b;">{{ top_products|length }}</div>
+          <div class="stat-label">Top Sellers Active</div>
+        </td>
+      </tr>
+    </table>
+
+    <div class="section-title">Top Selling Products This Week</div>
+    {% if top_products %}
+    <table class="simple-table">
+      <thead>
+        <tr>
+          <th style="width: 40px;">#</th>
+          <th>Product</th>
+          <th style="text-align:right;">Units Sold</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for prod_name, qty in top_products %}
+        <tr>
+          <td><strong>{{ loop.index }}</strong></td>
+          <td><strong>{{ prod_name }}</strong></td>
+          <td style="text-align:right; font-weight: 600; color:#4f46e5;">{{ qty }} units</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p style="font-size:13px; color:#64748b; font-style:italic;">No product sales recorded in the past 7 days.</p>
+    {% endif %}
+
+    <div style="background:#ede9fe; border:1px solid #c4b5fd; border-radius:8px; padding:14px; margin-top:20px; font-size:13px; color:#4338ca;">
+      <strong>Weekly digest completed.</strong> For full breakdown by customer and monthly comparisons, visit the StockFlow Analytics dashboard.
+    </div>
+  </div>
+  <div class="footer">
+    StockFlow Automated Scheduler &bull; Weekly Report to Administrators
+  </div>
+</div>
+</body>
+</html>

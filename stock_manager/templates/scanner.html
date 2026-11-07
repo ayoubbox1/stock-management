@@ -1,0 +1,450 @@
+{% extends "base.html" %}
+{% block title %}StockFlow – Barcode & QR Scanner{% endblock %}
+
+{% block extra_head %}
+<style>
+.scanner-viewport {
+    position: relative;
+    width: 100%;
+    max-width: 540px;
+    height: 340px;
+    margin: 0 auto;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #020617;
+    border: 2px solid #334155;
+    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3);
+}
+.scanner-viewport video, .scanner-viewport canvas {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover;
+}
+.scanner-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.scan-target-box {
+    width: 260px;
+    height: 160px;
+    border: 2px dashed rgba(79, 70, 229, 0.85);
+    border-radius: 12px;
+    position: relative;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.45);
+}
+.scan-laser-line {
+    position: absolute;
+    left: 4px;
+    right: 4px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #ef4444, #f43f5e, #ef4444, transparent);
+    box-shadow: 0 0 8px #ef4444;
+    animation: scanAnimation 2s infinite ease-in-out;
+}
+@keyframes scanAnimation {
+    0% { top: 6px; opacity: 0.8; }
+    50% { top: calc(100% - 8px); opacity: 1; }
+    100% { top: 6px; opacity: 0.8; }
+}
+.matched-card {
+    transition: transform .2s ease, box-shadow .2s ease;
+    border-left: 5px solid var(--sf-primary);
+}
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .25rem .75rem;
+    border-radius: 9999px;
+    font-size: .78rem;
+    font-weight: 600;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="sf-topbar">
+    <div>
+        <h1><i class="bi bi-camera me-2" style="color:var(--sf-primary)"></i>Live Barcode & SKU Scanner</h1>
+        <p class="text-muted mb-0" style="font-size:.85rem;">Scan barcodes using camera or search manually to lookup products and manage stock.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('product_create') }}" class="btn-sf outline"><i class="bi bi-plus-lg"></i> New Product</a>
+        <a href="{{ url_for('api_docs') }}" class="btn-sf outline"><i class="bi bi-braces"></i> API Docs</a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Camera Viewport Card -->
+    <div class="col-lg-7">
+        <div class="sf-card text-center">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <div class="d-flex align-items-center gap-2">
+                    <span id="scannerStatusPill" class="status-pill" style="background:#fee2e2; color:#991b1b;">
+                        <i class="bi bi-camera-video-off"></i> Camera Offline
+                    </span>
+                    <span id="detectedFormatBadge" class="badge bg-secondary" style="font-size:.7rem; display:none;"></span>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="button" id="startCamBtn" class="btn-sf primary btn-sm" onclick="startScanner()">
+                        <i class="bi bi-camera"></i> Start Camera
+                    </button>
+                    <button type="button" id="stopCamBtn" class="btn-sf outline btn-sm" style="display:none;" onclick="stopScanner()">
+                        <i class="bi bi-pause"></i> Stop
+                    </button>
+                </div>
+            </div>
+
+            <!-- Viewport container -->
+            <div class="scanner-viewport" id="interactive">
+                <div class="scanner-overlay" id="scannerOverlay" style="display:none;">
+                    <div class="scan-target-box">
+                        <div class="scan-laser-line"></div>
+                    </div>
+                </div>
+                <div id="camFallbackMsg" class="d-flex flex-column align-items-center justify-content-center h-100 p-4" style="color:#94a3b8;">
+                    <i class="bi bi-upc-scan" style="font-size:3.5rem; margin-bottom:12px; opacity:0.6;"></i>
+                    <h6 class="fw-semibold text-white">Camera Scanner Idle</h6>
+                    <p style="font-size:.82rem; max-width:320px; margin-bottom:16px;">
+                        Click "Start Camera" to scan Code128, EAN, or UPC barcodes live using your browser webcam.
+                    </p>
+                    <button type="button" class="btn-sf primary btn-sm" onclick="startScanner()">
+                        <i class="bi bi-camera-fill me-1"></i> Enable Camera
+                    </button>
+                </div>
+            </div>
+
+            <div class="d-flex align-items-center justify-content-between mt-3 text-muted" style="font-size:.78rem;">
+                <span><i class="bi bi-shield-check text-success me-1"></i> Powered by Quagga2 Barcode Reader</span>
+                <span id="lastScannedText">Ready to scan</span>
+            </div>
+        </div>
+
+        <!-- Manual Input Fallback -->
+        <div class="sf-card mt-3">
+            <h6 class="fw-semibold mb-2"><i class="bi bi-keyboard me-2"></i>Manual SKU / Barcode Search</h6>
+            <form onsubmit="handleManualSearch(event)" class="d-flex gap-2">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-upc"></i></span>
+                    <input type="text" id="manualSkuInput" class="form-control" placeholder="Enter SKU code (e.g. KB-100)..." required>
+                </div>
+                <button type="submit" class="btn-sf primary" style="flex-shrink:0;">
+                    <i class="bi bi-search"></i> Search SKU
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Match Result Card Column -->
+    <div class="col-lg-5">
+        <div id="resultsContainer">
+            <!-- Initial placeholder -->
+            <div class="sf-card text-center py-5" id="noScanYetCard">
+                <div class="mb-3" style="color:var(--sf-muted); font-size:3rem;">
+                    <i class="bi bi-qr-code-scan"></i>
+                </div>
+                <h5 class="fw-semibold">No Product Scanned Yet</h5>
+                <p class="text-muted" style="font-size:.84rem; max-width:280px; margin:0 auto 16px;">
+                    Position a product barcode in front of the camera or enter a SKU above to display product information and adjust inventory.
+                </p>
+            </div>
+
+            <!-- Found Product Card (Hidden Initially) -->
+            <div class="sf-card matched-card" id="matchedProductCard" style="display:none;">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <span class="badge bg-success" style="font-size:.75rem;">
+                        <i class="bi bi-check2-circle me-1"></i> Product Found
+                    </span>
+                    <span class="text-muted" style="font-size:.78rem;" id="matchTimestamp"></span>
+                </div>
+
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div id="productThumbBox" class="product-thumb-placeholder" style="width:60px; height:60px; font-size:1.5rem; border-radius:10px;">
+                        <i class="bi bi-box-seam"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-1" id="prodName">—</h5>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <span class="badge bg-light text-dark border">SKU: <code id="prodSku">—</code></span>
+                            <span id="prodCategory" class="badge" style="background:#4f46e5; color:#fff;"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-2 mb-3 text-center">
+                    <div class="col-6">
+                        <div style="background:rgba(0,0,0,0.02); border:1px solid var(--sf-border); border-radius:8px; padding:10px;">
+                            <div class="text-muted" style="font-size:.75rem;">Current Stock</div>
+                            <div class="fw-bold" style="font-size:1.4rem;" id="prodStock">0</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div style="background:rgba(0,0,0,0.02); border:1px solid var(--sf-border); border-radius:8px; padding:10px;">
+                            <div class="text-muted" style="font-size:.75rem;">Unit Price</div>
+                            <div class="fw-bold text-success" style="font-size:1.4rem;" id="prodPrice">$0.00</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Adjust Controls -->
+                <div class="mb-3 p-3" style="background:rgba(79,70,229,0.05); border-radius:10px; border:1px dashed rgba(79,70,229,0.3);">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="fw-semibold" style="font-size:.82rem;"><i class="bi bi-sliders me-1"></i> Quick Stock Adjustment</span>
+                        <span id="adjustStatus" style="font-size:.75rem; color:var(--sf-muted);"></span>
+                    </div>
+                    <div class="d-flex align-items-center justify-content-center gap-2">
+                        <button type="button" class="btn btn-outline-danger btn-sm px-3" onclick="adjustQuickStock(-1)" title="Deduct 1 unit">
+                            <i class="bi bi-dash-lg"></i> -1
+                        </button>
+                        <input type="number" id="quickAdjustVal" class="form-control form-control-sm text-center" style="width:70px; border-radius:6px;" value="1" min="1">
+                        <button type="button" class="btn btn-outline-success btn-sm px-3" onclick="adjustQuickStock(1)" title="Add units">
+                            <i class="bi bi-plus-lg"></i> +Add
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="d-flex gap-2 flex-wrap">
+                    <a id="editProdBtn" href="#" class="btn-sf primary btn-sm flex-fill justify-content-center">
+                        <i class="bi bi-pencil-square"></i> Edit Product
+                    </a>
+                    <a href="{{ url_for('invoice_list') }}" class="btn-sf outline btn-sm flex-fill justify-content-center">
+                        <i class="bi bi-receipt"></i> View Invoices
+                    </a>
+                </div>
+            </div>
+
+            <!-- Not Found Card (Hidden Initially) -->
+            <div class="sf-card" id="notFoundCard" style="display:none; border-left: 5px solid var(--sf-danger);">
+                <div class="text-danger mb-2" style="font-size:2rem;"><i class="bi bi-exclamation-triangle"></i></div>
+                <h5 class="fw-semibold text-danger">No Product Found</h5>
+                <p class="text-muted" style="font-size:.85rem; margin-bottom:14px;">
+                    No inventory item matches SKU: <code id="missingSkuCode" class="fw-bold" style="color:#ef4444;"></code>
+                </p>
+                <div class="d-flex gap-2">
+                    <a id="createProductWithSkuBtn" href="#" class="btn-sf primary btn-sm">
+                        <i class="bi bi-plus-circle"></i> Create Product Now
+                    </a>
+                    <button type="button" class="btn-sf outline btn-sm" onclick="clearResults()">Dismiss</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<!-- Quagga2 CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2/dist/quagga.min.js"></script>
+<script>
+let currentProduct = null;
+let isScannerActive = false;
+let lastDetectedSku = null;
+let scanCooldown = false;
+const apiKey = "{{ api_key }}";
+
+// Simple AudioContext beep feedback
+function playBeep() {
+    try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime); // 880 Hz
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.12);
+    } catch(e) {}
+}
+
+function startScanner() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert("Camera access is not supported by your browser or environment. Please use manual SKU input.");
+        return;
+    }
+
+    document.getElementById('camFallbackMsg').style.display = 'none';
+    document.getElementById('scannerOverlay').style.display = 'flex';
+    document.getElementById('startCamBtn').style.display = 'none';
+    document.getElementById('stopCamBtn').style.display = 'inline-flex';
+
+    Quagga.init({
+        inputStream: {
+            name: "Live",
+            type: "LiveStream",
+            target: document.querySelector('#interactive'),
+            constraints: {
+                facingMode: "environment",
+                width: { min: 480, ideal: 640 },
+                height: { min: 320, ideal: 480 }
+            }
+        },
+        decoder: {
+            readers: [
+                "code_128_reader",
+                "ean_reader",
+                "ean_8_reader",
+                "code_39_reader",
+                "upc_reader",
+                "upc_e_reader"
+            ]
+        },
+        locate: true
+    }, function(err) {
+        if (err) {
+            console.error("Quagga initialization error:", err);
+            document.getElementById('scannerStatusPill').innerHTML = '<i class="bi bi-x-circle"></i> Camera Access Denied';
+            document.getElementById('scannerStatusPill').style.background = '#fee2e2';
+            document.getElementById('scannerStatusPill').style.color = '#991b1b';
+            document.getElementById('camFallbackMsg').style.display = 'flex';
+            document.getElementById('scannerOverlay').style.display = 'none';
+            document.getElementById('startCamBtn').style.display = 'inline-flex';
+            document.getElementById('stopCamBtn').style.display = 'none';
+            return;
+        }
+        Quagga.start();
+        isScannerActive = true;
+        document.getElementById('scannerStatusPill').innerHTML = '<i class="bi bi-broadcast"></i> Scanning Barcode...';
+        document.getElementById('scannerStatusPill').style.background = '#d1fae5';
+        document.getElementById('scannerStatusPill').style.color = '#065f46';
+    });
+
+    Quagga.onDetected(function(result) {
+        if (!result || !result.codeResult || scanCooldown) return;
+        const code = result.codeResult.code;
+        const format = result.codeResult.format;
+        if (!code) return;
+
+        scanCooldown = true;
+        playBeep();
+        document.getElementById('detectedFormatBadge').style.display = 'inline-block';
+        document.getElementById('detectedFormatBadge').textContent = format;
+        document.getElementById('lastScannedText').textContent = "Scanned: " + code;
+
+        lookupSku(code);
+
+        // Reset cooldown after 2 seconds
+        setTimeout(() => { scanCooldown = false; }, 2000);
+    });
+}
+
+function stopScanner() {
+    if (isScannerActive) {
+        Quagga.stop();
+        isScannerActive = false;
+    }
+    document.getElementById('scannerOverlay').style.display = 'none';
+    document.getElementById('camFallbackMsg').style.display = 'flex';
+    document.getElementById('startCamBtn').style.display = 'inline-flex';
+    document.getElementById('stopCamBtn').style.display = 'none';
+    document.getElementById('scannerStatusPill').innerHTML = '<i class="bi bi-camera-video-off"></i> Camera Offline';
+    document.getElementById('scannerStatusPill').style.background = '#fee2e2';
+    document.getElementById('scannerStatusPill').style.color = '#991b1b';
+}
+
+function handleManualSearch(e) {
+    e.preventDefault();
+    const sku = document.getElementById('manualSkuInput').value.trim();
+    if (sku) {
+        lookupSku(sku);
+    }
+}
+
+async function lookupSku(sku) {
+    try {
+        const response = await fetch('/api/v1/products?sku=' + encodeURIComponent(sku), {
+            headers: {
+                'X-API-Key': apiKey,
+                'Accept': 'application/json'
+            }
+        });
+        const products = await response.json();
+
+        document.getElementById('noScanYetCard').style.display = 'none';
+
+        if (Array.isArray(products) && products.length > 0) {
+            displayMatchedProduct(products[0]);
+        } else {
+            showNotFound(sku);
+        }
+    } catch(err) {
+        console.error("Error looking up product:", err);
+    }
+}
+
+function displayMatchedProduct(prod) {
+    currentProduct = prod;
+    document.getElementById('notFoundCard').style.display = 'none';
+    document.getElementById('matchedProductCard').style.display = 'block';
+
+    document.getElementById('prodName').textContent = prod.name;
+    document.getElementById('prodSku').textContent = prod.sku;
+    document.getElementById('prodPrice').textContent = '$' + Number(prod.price).toFixed(2);
+    document.getElementById('prodStock').textContent = prod.quantity;
+    document.getElementById('matchTimestamp').textContent = new Date().toLocaleTimeString();
+
+    if (prod.category_name) {
+        document.getElementById('prodCategory').textContent = prod.category_name;
+        document.getElementById('prodCategory').style.display = 'inline-block';
+    } else {
+        document.getElementById('prodCategory').style.display = 'none';
+    }
+
+    document.getElementById('editProdBtn').href = '/product/' + prod.id + '/edit';
+    document.getElementById('adjustStatus').textContent = '';
+}
+
+function showNotFound(sku) {
+    currentProduct = null;
+    document.getElementById('matchedProductCard').style.display = 'none';
+    document.getElementById('notFoundCard').style.display = 'block';
+    document.getElementById('missingSkuCode').textContent = sku;
+    document.getElementById('createProductWithSkuBtn').href = '/product/new?sku=' + encodeURIComponent(sku);
+}
+
+function clearResults() {
+    document.getElementById('notFoundCard').style.display = 'none';
+    document.getElementById('matchedProductCard').style.display = 'none';
+    document.getElementById('noScanYetCard').style.display = 'block';
+}
+
+async function adjustQuickStock(direction) {
+    if (!currentProduct) return;
+    let amount = parseInt(document.getElementById('quickAdjustVal').value) || 1;
+    let adjustment = direction * Math.abs(amount);
+
+    try {
+        const res = await fetch('/api/v1/stock/adjust', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-API-Key': apiKey
+            },
+            body: JSON.stringify({
+                product_id: currentProduct.id,
+                adjustment: adjustment
+            })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            currentProduct.quantity = data.new_quantity;
+            document.getElementById('prodStock').textContent = data.new_quantity;
+            const sign = adjustment > 0 ? '+' : '';
+            document.getElementById('adjustStatus').textContent = `Stock updated (${sign}${adjustment})`;
+            document.getElementById('adjustStatus').className = 'text-success fw-bold';
+        } else {
+            document.getElementById('adjustStatus').textContent = data.error || 'Failed';
+            document.getElementById('adjustStatus').className = 'text-danger';
+        }
+    } catch(err) {
+        console.error("Adjustment error:", err);
+    }
+}
+</script>
+{% endblock %}

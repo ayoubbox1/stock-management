@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}StockFlow – Request Return for INV-{{ "%04d"|format(invoice.id) }}{% endblock %}
+
+{% block content %}
+<div class="sf-topbar">
+    <h1>
+        <i class="bi bi-arrow-counterclockwise me-2" style="color:var(--sf-primary)"></i>
+        Request Return for Invoice #INV-{{ "%04d"|format(invoice.id) }}
+    </h1>
+    <a href="{{ url_for('invoice_view', invoice_id=invoice.id) }}" class="btn-sf outline"><i class="bi bi-arrow-left"></i> Back to Invoice</a>
+</div>
+
+<div class="sf-card" style="max-width:750px;">
+    <div class="d-flex align-items-center justify-content-between p-3 rounded mb-4" style="background:var(--sf-bg); border:1px solid var(--sf-border);">
+        <div>
+            <div class="fw-semibold">{{ invoice.client_name }}</div>
+            <div class="small text-muted">Date: {{ invoice.created_at.strftime('%B %d, %Y') }}</div>
+        </div>
+        <div class="text-end">
+            <div class="small text-muted">Invoice Total</div>
+            <div class="fw-bold fs-5 text-primary">{{ invoice.currency_symbol }}{{ "%.2f"|format(invoice.total_amount) }}</div>
+        </div>
+    </div>
+
+    <form method="POST">
+        <h6 class="fw-semibold mb-3">1. Select Items to Return</h6>
+        <div class="table-responsive mb-4">
+            <table class="sf-table">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Billed Qty</th>
+                        <th>Unit Price</th>
+                        <th>Return Qty</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in invoice.items %}
+                    <tr>
+                        <td class="fw-medium">
+                            <input type="hidden" name="item_id" value="{{ item.id }}">
+                            {{ item.product.name }} (<code>{{ item.product.sku }}</code>)
+                        </td>
+                        <td>{{ item.quantity }}</td>
+                        <td>{{ invoice.currency_symbol }}{{ "%.2f"|format(item.unit_price) }}</td>
+                        <td style="max-width:140px;">
+                            <input type="number" name="quantity" class="form-control form-control-sm"
+                                   min="0" max="{{ item.quantity }}" value="0" style="border-radius:6px;">
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <h6 class="fw-semibold mb-2">2. Reason for Return *</h6>
+        <div class="mb-4">
+            <textarea name="reason" class="form-control" rows="3" required style="border-radius:8px;"
+                      placeholder="e.g. Defective item, customer changed mind, incorrect product shipped..."></textarea>
+        </div>
+
+        <div class="d-flex gap-2 justify-content-end">
+            <a href="{{ url_for('invoice_view', invoice_id=invoice.id) }}" class="btn-sf outline">Cancel</a>
+            <button type="submit" class="btn-sf warning">
+                <i class="bi bi-arrow-counterclockwise"></i> Submit Return Request
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

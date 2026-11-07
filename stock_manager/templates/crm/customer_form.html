@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}StockFlow – {{ "Edit" if customer else "New" }} Customer{% endblock %}
+
+{% block content %}
+<div class="sf-topbar">
+    <h1>
+        <i class="bi bi-{{ 'pencil' if customer else 'person-plus' }} me-2" style="color:var(--sf-primary)"></i>
+        {{ "Edit Customer" if customer else "New Customer" }}
+    </h1>
+    <a href="{{ url_for('customer_list') }}" class="btn-sf outline"><i class="bi bi-arrow-left"></i> Back</a>
+</div>
+
+<div class="sf-card" style="max-width:640px;">
+    <form method="POST">
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Full Name *</label>
+                <input type="text" name="name" class="form-control" style="border-radius:8px;" required
+                       value="{{ customer.name if customer else '' }}" placeholder="John Doe">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Company</label>
+                <input type="text" name="company" class="form-control" style="border-radius:8px;"
+                       value="{{ customer.company if customer else '' }}" placeholder="Acme Corp">
+            </div>
+        </div>
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Email</label>
+                <input type="email" name="email" class="form-control" style="border-radius:8px;"
+                       value="{{ customer.email if customer else '' }}" placeholder="john@example.com">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Phone</label>
+                <input type="tel" name="phone" class="form-control" style="border-radius:8px;"
+                       value="{{ customer.phone if customer else '' }}" placeholder="+1 555-0123">
+            </div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Address</label>
+            <textarea name="address" class="form-control" style="border-radius:8px;" rows="2"
+                      placeholder="123 Main St, City, State">{{ customer.address if customer else '' }}</textarea>
+        </div>
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Status</label>
+            <select name="status" class="form-select" style="border-radius:8px;">
+                {% set current_status = customer.status if customer else 'lead' %}
+                <option value="lead"     {{ 'selected' if current_status == 'lead' }}>🟡 Lead</option>
+                <option value="active"   {{ 'selected' if current_status == 'active' }}>🟢 Active</option>
+                <option value="inactive" {{ 'selected' if current_status == 'inactive' }}>⚪ Inactive</option>
+            </select>
+        </div>
+        <div class="mb-4">
+            <label class="form-label fw-semibold">Notes</label>
+            <textarea name="notes" class="form-control" style="border-radius:8px;" rows="3"
+                      placeholder="Internal notes about this customer…">{{ customer.notes if customer else '' }}</textarea>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn-sf primary"><i class="bi bi-check-lg"></i> {{ "Update" if customer else "Create" }}</button>
+            <a href="{{ url_for('customer_list') }}" class="btn-sf outline">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

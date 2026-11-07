@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}StockFlow – Invoices{% endblock %}
+
+{% block content %}
+<div class="sf-topbar">
+    <h1><i class="bi bi-receipt me-2" style="color:var(--sf-primary)"></i>Invoices</h1>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{{ url_for('export_invoices') }}" class="btn-sf outline"><i class="bi bi-download"></i> Export CSV</a>
+        <a href="{{ url_for('invoice_create') }}" class="btn-sf primary"><i class="bi bi-plus-lg"></i> New Invoice</a>
+    </div>
+</div>
+
+<div class="sf-card">
+    {% if invoices %}
+    <div class="table-responsive">
+        <table class="sf-table">
+            <thead>
+                <tr>
+                    <th>Invoice #</th>
+                    <th>Client</th>
+                    <th>Date</th>
+                    <th>Currency</th>
+                    <th>Items</th>
+                    <th>Discount</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                    <th style="text-align:right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for inv in invoices %}
+                <tr>
+                    <td style="font-weight:600; color:var(--sf-primary);">
+                        <a href="{{ url_for('invoice_view', invoice_id=inv.id) }}" style="color:inherit; text-decoration:none;">
+                            #INV-{{ "%04d"|format(inv.id) }}
+                        </a>
+                    </td>
+                    <td>{{ inv.client_name }}</td>
+                    <td>{{ inv.created_at.strftime('%b %d, %Y') if inv.created_at else '—' }}</td>
+                    <td><code>{{ inv.currency_code }}</code></td>
+                    <td>{{ inv.items|length }}</td>
+                    <td>
+                        {% if inv.discount_pct and inv.discount_pct > 0 %}
+                            <span class="badge bg-danger-subtle text-danger" style="font-size:.75rem; padding:.3em .6em; border-radius:6px;">
+                                -{{ inv.discount_pct }}%
+                            </span>
+                        {% else %}
+                            <span style="color:var(--sf-muted); font-size:.8rem;">—</span>
+                        {% endif %}
+                    </td>
+                    <td style="font-weight:600;">{{ inv.currency_symbol }}{{ "%.2f"|format(inv.total_amount) }}</td>
+                    <td>
+                        {% if inv.returns %}
+                            {% set ret = inv.returns[-1] %}
+                            <span class="badge-return {{ ret.status }}" title="Return #{{ ret.id }}: {{ ret.status }}">Return {{ ret.status }}</span>
+                        {% else %}
+                            <span class="badge-stock ok">Paid</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align:right;">
+                        <a href="{{ url_for('invoice_view', invoice_id=inv.id) }}" class="btn-sf outline btn-sm" title="View"><i class="bi bi-eye"></i></a>
+                        <a href="{{ url_for('invoice_pdf', invoice_id=inv.id) }}" class="btn-sf primary btn-sm" title="PDF"><i class="bi bi-file-pdf"></i></a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5" style="color:var(--sf-muted);">
+        <i class="bi bi-receipt-cutoff" style="font-size:2.5rem;"></i>
+        <p class="mt-2 mb-0">No invoices yet. <a href="{{ url_for('invoice_create') }}">Create your first invoice</a>.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

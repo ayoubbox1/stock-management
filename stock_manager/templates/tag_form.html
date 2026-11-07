@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}StockFlow – {{ "Edit" if tag else "New" }} Tag{% endblock %}
+
+{% block content %}
+<div class="sf-topbar">
+    <h1>
+        <i class="bi bi-{{ 'pencil' if tag else 'plus-circle' }} me-2" style="color:var(--sf-primary)"></i>
+        {{ "Edit Tag" if tag else "New Tag" }}
+    </h1>
+    <a href="{{ url_for('tag_list') }}" class="btn-sf outline"><i class="bi bi-arrow-left"></i> Back to Tags</a>
+</div>
+
+<div class="sf-card" style="max-width:500px;">
+    <form method="POST">
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Tag Name *</label>
+            <input type="text" name="name" class="form-control" style="border-radius:8px;" required
+                   value="{{ tag.name if tag else '' }}" placeholder="e.g. Featured, Sale, Best Seller">
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label fw-semibold">Tag Color</label>
+            <div class="d-flex align-items-center gap-3">
+                <input type="color" name="color" id="tagColorPicker" class="form-control form-control-color"
+                       value="{{ tag.color if tag else '#6366f1' }}" style="width:60px; height:42px; border-radius:8px; cursor:pointer;"
+                       oninput="document.getElementById('colorHex').value = this.value">
+                <input type="text" id="colorHex" class="form-control" style="max-width:140px; border-radius:8px;"
+                       value="{{ tag.color if tag else '#6366f1' }}" oninput="document.getElementById('tagColorPicker').value = this.value">
+            </div>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn-sf primary"><i class="bi bi-check-lg"></i> {{ "Update Tag" if tag else "Create Tag" }}</button>
+            <a href="{{ url_for('tag_list') }}" class="btn-sf outline">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

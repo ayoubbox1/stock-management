@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}StockFlow – Purchase Orders{% endblock %}
+
+{% block content %}
+<div class="sf-topbar">
+    <h1><i class="bi bi-cart-check me-2" style="color:var(--sf-primary)"></i>Purchase Orders</h1>
+    <a href="{{ url_for('purchase_order_create') }}" class="btn-sf primary"><i class="bi bi-plus-lg"></i> New Purchase Order</a>
+</div>
+
+<div class="sf-card">
+    {% if purchase_orders %}
+    <div class="table-responsive">
+        <table class="sf-table">
+            <thead>
+                <tr>
+                    <th>PO #</th>
+                    <th>Supplier</th>
+                    <th>Date</th>
+                    <th>Items Count</th>
+                    <th>Total Cost</th>
+                    <th>Status</th>
+                    <th style="text-align:right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for po in purchase_orders %}
+                <tr>
+                    <td>
+                        <a href="{{ url_for('purchase_order_detail', poid=po.id) }}" style="color:var(--sf-primary); font-weight:600;">
+                            #PO-{{ "%04d"|format(po.id) }}
+                        </a>
+                    </td>
+                    <td>
+                        <a href="{{ url_for('supplier_detail', sid=po.supplier.id) }}" style="color:inherit; text-decoration:none; font-weight:500;">
+                            {{ po.supplier.name }}
+                        </a>
+                    </td>
+                    <td>{{ po.created_at.strftime('%b %d, %Y') if po.created_at else '—' }}</td>
+                    <td>{{ po.items_count }} items</td>
+                    <td class="fw-semibold">${{ "%.2f"|format(po.total_cost) }}</td>
+                    <td>
+                        <span class="badge-po {{ po.status }}">{{ po.status }}</span>
+                    </td>
+                    <td style="text-align:right;">
+                        <a href="{{ url_for('purchase_order_detail', poid=po.id) }}" class="btn-sf outline btn-sm">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                        {% if po.status != 'received' %}
+                        <form action="{{ url_for('purchase_order_receive', poid=po.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Mark PO-{{ '%04d'|format(po.id) }} as received? This will add stock to inventory.')">
+                            <button type="submit" class="btn-sf success btn-sm" title="Receive Items"><i class="bi bi-box-seam"></i> Receive</button>
+                        </form>
+                        {% endif %}
+                        <form action="{{ url_for('purchase_order_delete', poid=po.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Delete PO-{{ '%04d'|format(po.id) }}?')">
+                            <button type="submit" class="btn-sf danger btn-sm" title="Delete"><i class="bi bi-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5" style="color:var(--sf-muted);">
+        <i class="bi bi-cart-x" style="font-size:2.5rem;"></i>
+        <p class="mt-2 mb-0">No purchase orders yet. <a href="{{ url_for('purchase_order_create') }}">Create your first purchase order</a>.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

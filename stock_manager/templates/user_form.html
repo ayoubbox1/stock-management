@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}StockFlow – {{ "Add User" if is_register else ("Edit " ~ edit_user.username) }}{% endblock %}
+
+{% block content %}
+<div class="sf-topbar">
+    <h1>
+        <i class="bi bi-{{ 'person-plus' if is_register else 'pencil-square' }} me-2" style="color:var(--sf-primary)"></i>
+        {{ "Add New User" if is_register else ("Edit User: " ~ edit_user.username) }}
+    </h1>
+    <a href="{{ url_for('user_list') }}" class="btn-sf outline"><i class="bi bi-arrow-left"></i> Back to Users</a>
+</div>
+
+<div class="sf-card" style="max-width: 550px;">
+    <form method="POST">
+        {% if is_register %}
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Username *</label>
+            <input type="text" name="username" class="form-control" style="border-radius:8px;" required placeholder="e.g. jdoe">
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Email *</label>
+            <input type="email" name="email" class="form-control" style="border-radius:8px;" required placeholder="jdoe@example.com">
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Password *</label>
+            <input type="password" name="password" class="form-control" style="border-radius:8px;" required placeholder="••••••••">
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label fw-semibold">Role</label>
+            <select name="role" class="form-select" style="border-radius:8px;">
+                <option value="staff">Staff</option>
+                <option value="manager">Manager</option>
+                <option value="admin">Administrator</option>
+            </select>
+        </div>
+
+        {% else %}
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Username</label>
+            <input type="text" class="form-control" style="border-radius:8px;" value="{{ edit_user.username }}" disabled>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Email</label>
+            <input type="text" class="form-control" style="border-radius:8px;" value="{{ edit_user.email }}" disabled>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Role</label>
+            <select name="role" class="form-select" style="border-radius:8px;" {% if edit_user.id == current_user.id %}disabled{% endif %}>
+                <option value="staff" {% if edit_user.role == 'staff' %}selected{% endif %}>Staff</option>
+                <option value="manager" {% if edit_user.role == 'manager' %}selected{% endif %}>Manager</option>
+                <option value="admin" {% if edit_user.role == 'admin' %}selected{% endif %}>Administrator</option>
+            </select>
+            {% if edit_user.id == current_user.id %}
+            <small class="text-muted">You cannot change your own admin role.</small>
+            {% endif %}
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label fw-semibold">Reset Password</label>
+            <input type="password" name="new_password" class="form-control" style="border-radius:8px;" placeholder="Leave blank to keep current password">
+            <small class="text-muted">Enter a new password only if you want to reset it.</small>
+        </div>
+
+        <div class="form-check form-switch mb-4">
+            <input class="form-check-input" type="checkbox" name="is_active" id="activeSwitch" value="1"
+                   {% if edit_user.is_active %}checked{% endif %}
+                   {% if edit_user.id == current_user.id %}disabled{% endif %}>
+            <label class="form-check-label fw-semibold" for="activeSwitch">Active Account</label>
+        </div>
+        {% endif %}
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn-sf primary"><i class="bi bi-check-lg"></i> {{ "Create User" if is_register else "Save Changes" }}</button>
+            <a href="{{ url_for('user_list') }}" class="btn-sf outline">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

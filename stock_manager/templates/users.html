@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}StockFlow – User Management{% endblock %}
+
+{% block content %}
+<div class="sf-topbar">
+    <h1><i class="bi bi-shield-lock me-2" style="color:var(--sf-primary)"></i>User Management</h1>
+    <a href="{{ url_for('register') }}" class="btn-sf primary"><i class="bi bi-person-plus"></i> Add User</a>
+</div>
+
+<div class="sf-card">
+    <div class="table-responsive">
+        <table class="sf-table">
+            <thead>
+                <tr>
+                    <th style="width:45px"></th>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Created At</th>
+                    <th style="text-align:right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr>
+                    <td>
+                        <div class="avatar sm {% if u.role == 'admin' %}red{% elif u.role == 'manager' %}blue{% else %}cyan{% endif %}">
+                            {{ u.initials }}
+                        </div>
+                    </td>
+                    <td class="fw-semibold">
+                        {{ u.username }}
+                        {% if u.id == current_user.id %}
+                            <span class="badge bg-secondary ms-1" style="font-size:.65rem;">You</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ u.email }}</td>
+                    <td>
+                        <span class="badge-role {{ u.role }}">{{ u.role }}</span>
+                    </td>
+                    <td>
+                        {% if u.is_active %}
+                            <span class="badge-stock ok">Active</span>
+                        {% else %}
+                            <span class="badge-stock out">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ u.created_at.strftime('%b %d, %Y') if u.created_at else '—' }}</td>
+                    <td style="text-align:right;">
+                        <a href="{{ url_for('user_edit', uid=u.id) }}" class="btn-sf outline btn-sm">
+                            <i class="bi bi-pencil"></i> Edit
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+{% block title %}StockFlow – {{ "Edit" if product else "New" }} Product{% endblock %}
+
+{% block content %}
+<div class="sf-topbar">
+    <h1>
+        <i class="bi bi-{{ 'pencil' if product else 'plus-circle' }} me-2" style="color:var(--sf-primary)"></i>
+        {{ "Edit Product" if product else "New Product" }}
+    </h1>
+    <div class="d-flex gap-2">
+        {% if product %}
+        <button type="button" class="btn-sf primary" data-bs-toggle="modal" data-bs-target="#labelModal">
+            <i class="bi bi-printer"></i> Print Label
+        </button>
+        {% endif %}
+        <a href="{{ url_for('index') }}" class="btn-sf outline"><i class="bi bi-arrow-left"></i> Back</a>
+    </div>
+</div>
+
+<div class="sf-card" style="max-width:680px;">
+    <form method="POST" enctype="multipart/form-data">
+        <!-- Image upload -->
+        <div class="mb-4 text-center">
+            <label class="form-label fw-semibold d-block">Product Image</label>
+            <div class="img-preview-wrap mx-auto" onclick="document.getElementById('imageInput').click()">
+                {% if product and product.image_url %}
+                    <img src="{{ product.image_url }}" id="imgPreview" alt="Product image">
+                {% else %}
+                    <img src="" id="imgPreview" alt="" style="display:none;">
+                    <div class="placeholder-text" id="imgPlaceholder">
+                        <i class="bi bi-camera" style="font-size:1.5rem;"></i><br>
+                        Click to upload
+                    </div>
+                {% endif %}
+            </div>
+            <input type="file" name="image" id="imageInput" accept="image/*"
+                   style="display:none;" onchange="previewImage(this)">
+            <small class="text-muted d-block mt-1">PNG, JPG, GIF, WebP — max 5 MB</small>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Product Name *</label>
+            <input type="text" name="name" class="form-control" style="border-radius:8px;" required
+                   value="{{ product.name if product else '' }}" placeholder="e.g. Wireless Mouse">
+        </div>
+        <div class="mb-3">
+            <label class="form-label fw-semibold">SKU *</label>
+            <input type="text" name="sku" class="form-control" style="border-radius:8px;" required
+                   value="{{ product.sku if product else '' }}" placeholder="e.g. WM-001">
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Category</label>
+                <select name="category_id" class="form-select" style="border-radius:8px;">
+                    <option value="">— No Category —</option>
+                    {% for c in categories %}
+                    <option value="{{ c.id }}" {% if product and product.category_id == c.id %}selected{% endif %}>
+                        {{ c.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Supplier</label>
+                <select name="supplier_id" class="form-select" style="border-radius:8px;">
+                    <option value="">— No Supplier —</option>
+                    {% for s in suppliers %}
+                    <option value="{{ s.id }}" {% if product and product.supplier_id == s.id %}selected{% endif %}>
+                        {{ s.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-6">
+                <label class="form-label fw-semibold">Quantity</label>
+                <input type="number" name="quantity" min="0" class="form-control" style="border-radius:8px;"
+                       value="{{ product.quantity if product else 0 }}">
+            </div>
+            <div class="col-6">
+                <label class="form-label fw-semibold">Unit Price ($)</label>
+                <input type="number" name="price" min="0" step="0.01" class="form-control" style="border-radius:8px;"
+                       value="{{ product.price if product else '' }}" placeholder="0.00" required>
+            </div>
+        </div>
+
+        <!-- Tags Selection -->
+        <div class="mb-4">
+            <label class="form-label fw-semibold d-flex justify-content-between">
+                <span>Product Tags</span>
+                <a href="{{ url_for('tag_create') }}" target="_blank" class="small text-decoration-none" style="color:var(--sf-primary);">+ Add new tag</a>
+            </label>
+            {% if all_tags %}
+            <div class="d-flex flex-wrap gap-2 p-3 rounded" style="background:var(--sf-bg); border:1px solid var(--sf-border);">
+                {% for tag in all_tags %}
+                <div class="form-check form-check-inline m-0">
+                    <input class="form-check-input" type="checkbox" name="tag_ids" value="{{ tag.id }}" id="tag_{{ tag.id }}"
+                           {% if product and tag in product.tags %}checked{% endif %}>
+                    <label class="form-check-label d-inline-flex align-items-center gap-1" for="tag_{{ tag.id }}">
+                        <span class="badge" style="background-color:{{ tag.color }}; color:#fff; font-size:.78rem;">
+                            {{ tag.name }}
+                        </span>
+                    </label>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-muted small">No tags created yet. <a href="{{ url_for('tag_create') }}">Create your first tag</a>.</div>
+            {% endif %}
+        </div>
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn-sf primary"><i class="bi bi-check-lg"></i> {{ "Update Product" if product else "Create Product" }}</button>
+            <a href="{{ url_for('index') }}" class="btn-sf outline">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<!-- Printable Label Modal -->
+{% if product %}
+<div class="modal fade" id="labelModal" tabindex="-1" aria-labelledby="labelModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:16px; border:1px solid var(--sf-border); background:var(--sf-card);">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="labelModalLabel"><i class="bi bi-upc-scan me-2 text-primary"></i>Product Label</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center p-4">
+                <!-- Label Area for Print -->
+                <div id="printableLabel" style="background:#fff; color:#000; padding:1.5rem; border:2px dashed #94a3b8; border-radius:12px; max-width:340px; margin:0 auto; text-align:center;">
+                    <div style="font-size:1.15rem; font-weight:700; margin-bottom:.25rem;">{{ product.name }}</div>
+                    <div style="font-size:1.35rem; font-weight:800; color:#4f46e5; margin-bottom:.5rem;">${{ "%.2f"|format(product.price) }}</div>
+                    <div style="margin-bottom:.75rem;">
+                        <span style="background:#f1f5f9; color:#334155; padding:.2em .6em; border-radius:4px; font-family:monospace; font-weight:600; font-size:.9rem;">
+                            {{ product.sku }}
+                        </span>
+                    </div>
+
+                    <div class="row align-items-center justify-content-center my-3 g-2">
+                        <div class="col-5">
+                            <img src="{{ url_for('product_qrcode', pid=product.id) }}" alt="QR Code" style="width:100%; max-width:110px; height:auto; border-radius:6px; border:1px solid #e2e8f0;">
+                            <div style="font-size:.65rem; color:#64748b; margin-top:.2rem;">SCAN QR</div>
+                        </div>
+                        <div class="col-7">
+                            <img src="{{ url_for('product_barcode', pid=product.id) }}" alt="Barcode" style="width:100%; height:auto;">
+                        </div>
+                    </div>
+
+                    <div style="font-size:.7rem; color:#94a3b8; border-top:1px solid #f1f5f9; padding-top:.5rem;">
+                        StockFlow Inventory &bull; ID #{{ product.id }}
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer justify-content-between">
+                <button type="button" class="btn-sf outline" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn-sf primary" onclick="printLabelArea()">
+                    <i class="bi bi-printer me-1"></i> Print Label
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function previewImage(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            const img = document.getElementById('imgPreview');
+            img.src = e.target.result;
+            img.style.display = 'block';
+            const ph = document.getElementById('imgPlaceholder');
+            if (ph) ph.style.display = 'none';
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+function printLabelArea() {
+    const printContent = document.getElementById('printableLabel').outerHTML;
+    const printWindow = window.open('', '_blank', 'width=500,height=600');
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Product Label - {{ product.sku if product else '' }}</title>
+            <style>
+                body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display:flex; justify-content:center; align-items:center; height:100vh; margin:0; }
+                #printableLabel { border: none !important; }
+            </style>
+        </head>
+        <body onload="window.print(); window.close();">
+            ${printContent}
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
+}
+</script>
+{% endblock %}

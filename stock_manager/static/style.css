@@ -1,0 +1,9 @@
+/* StockFlow – Additional custom styles */
+/* Most styling is in base.html <style> block for simplicity.
+   Place overrides or new component styles here.           */
+
+/* Example: animated hover on stat cards */
+.sf-stat-card:hover .sf-stat-icon {
+    transform: scale(1.08);
+    transition: transform .2s ease;
+}

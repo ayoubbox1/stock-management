@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>403 – Access Denied | StockFlow</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; box-sizing: border-box; }
+        body {
+            background: #0f172a;
+            color: #f8fafc;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1rem;
+        }
+        .error-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 16px;
+            padding: 3rem 2.5rem;
+            max-width: 520px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+        .error-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 5px;
+            background: linear-gradient(90deg, #ef4444, #f59e0b, #ef4444);
+        }
+        .lock-icon-wrap {
+            width: 84px;
+            height: 84px;
+            border-radius: 50%;
+            background: rgba(239, 68, 68, 0.12);
+            border: 2px solid rgba(239, 68, 68, 0.25);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #ef4444;
+            font-size: 2.75rem;
+            margin-bottom: 1.5rem;
+            animation: pulse 2.5s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .role-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-size: .8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            background: #334155;
+            color: #93c5fd;
+            border: 1px solid #475569;
+            margin-bottom: 1.25rem;
+        }
+        .btn-return {
+            background: #4f46e5;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: .9rem;
+            padding: .65rem 1.4rem;
+            display: inline-flex;
+            align-items: center;
+            gap: .5rem;
+            text-decoration: none;
+            transition: all .2s;
+        }
+        .btn-return:hover {
+            background: #4338ca;
+            color: #fff;
+            transform: translateY(-1px);
+        }
+        .btn-outline-custom {
+            background: transparent;
+            color: #94a3b8;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: .9rem;
+            padding: .65rem 1.2rem;
+            text-decoration: none;
+            transition: all .2s;
+        }
+        .btn-outline-custom:hover {
+            background: #334155;
+            color: #f8fafc;
+        }
+    </style>
+</head>
+<body>
+    <div class="error-card">
+        <div class="lock-icon-wrap">
+            <i class="bi bi-shield-lock-fill"></i>
+        </div>
+
+        <h2 class="fw-bold text-white mb-2">Access Denied (403)</h2>
+
+        {% if current_user.is_authenticated %}
+        <div>
+            <span class="role-badge">
+                <i class="bi bi-person-badge me-1"></i> Current Role: {{ current_user.role }}
+            </span>
+        </div>
+        {% endif %}
+
+        <p class="text-secondary mb-4" style="font-size: .92rem; line-height: 1.6;">
+            You do not have permission to access this resource or execute this administrative action.
+            StockFlow role-based access control enforces strict separation between Administrator, Manager, and Staff tiers.
+        </p>
+
+        <div class="d-flex align-items-center justify-content-center gap-3">
+            <a href="javascript:history.back()" class="btn-outline-custom">
+                <i class="bi bi-arrow-left"></i> Go Back
+            </a>
+            <a href="{{ url_for('index') }}" class="btn-return">
+                <i class="bi bi-grid-1x2"></i> Return to Dashboard
+            </a>
+        </div>
+
+        <div class="mt-4 pt-3 border-top border-secondary border-opacity-25 text-secondary" style="font-size: .78rem;">
+            StockFlow RBAC Policy &bull; If you believe this is an error, contact your system administrator.
+        </div>
+    </div>
+</body>
+</html>

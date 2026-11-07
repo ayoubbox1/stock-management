@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Purchase Order #PO-{{ "%04d"|format(po.id) }} – StockFlow</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.min.css">
+    <style>
+        * { font-family: 'Inter', sans-serif; margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #f8fafc; color: #1e293b; padding: 2rem 1rem; }
+
+        .po-page {
+            max-width: 800px; margin: 0 auto; background: #fff;
+            border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,.07);
+            padding: 3rem; position: relative; overflow: hidden;
+        }
+        .po-page::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 6px;
+            background: linear-gradient(90deg, #10b981, #06b6d4, #4f46e5);
+        }
+
+        /* Header */
+        .po-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2.5rem; }
+        .po-brand { display: flex; align-items: center; gap: .75rem; }
+        .po-brand-icon {
+            width: 44px; height: 44px; border-radius: 10px;
+            background: linear-gradient(135deg, #10b981, #06b6d4);
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-weight: 700; font-size: 1.15rem;
+        }
+        .po-brand-name { font-size: 1.3rem; font-weight: 700; color: #1e293b; }
+        .po-number { text-align: right; }
+        .po-number h2 { font-size: 1.6rem; font-weight: 700; color: #10b981; margin-bottom: .25rem; }
+        .po-number p { color: #64748b; font-size: .85rem; }
+
+        /* Supplier info */
+        .po-info { display: flex; justify-content: space-between; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid #e2e8f0; }
+        .po-info-block h6 { font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; color: #94a3b8; margin-bottom: .35rem; }
+        .po-info-block p { font-size: .95rem; font-weight: 500; color: #1e293b; }
+
+        /* Badge */
+        .status-badge {
+            display: inline-block; padding: .3em .8em; border-radius: 6px;
+            font-size: .8rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em;
+        }
+        .status-badge.draft { background: #f1f5f9; color: #64748b; }
+        .status-badge.sent  { background: #dbeafe; color: #1e40af; }
+        .status-badge.received { background: #d1fae5; color: #065f46; }
+
+        /* Table */
+        .po-table { width: 100%; border-collapse: collapse; margin-bottom: 2rem; }
+        .po-table thead th {
+            background: #f1f5f9; font-size: .7rem; text-transform: uppercase;
+            letter-spacing: .06em; color: #64748b; padding: .75rem 1rem; text-align: left;
+        }
+        .po-table thead th:last-child { text-align: right; }
+        .po-table tbody td { padding: .75rem 1rem; border-bottom: 1px solid #f1f5f9; font-size: .9rem; }
+        .po-table tbody td:last-child { text-align: right; font-weight: 600; }
+        .po-table tbody tr:hover td { background: #fafbfc; }
+
+        /* Totals */
+        .po-totals { display: flex; justify-content: flex-end; }
+        .po-totals table { width: 300px; }
+        .po-totals td { padding: .4rem 0; font-size: .9rem; }
+        .po-totals .total-row td { font-size: 1.15rem; font-weight: 700; color: #10b981; border-top: 2px solid #e2e8f0; padding-top: .75rem; }
+
+        /* Footer */
+        .po-footer { margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid #e2e8f0; text-align: center; color: #94a3b8; font-size: .8rem; }
+
+        /* Action bar */
+        .po-actions { max-width: 800px; margin: 0 auto 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: .75rem; }
+        .po-actions .btn-group-left, .po-actions .btn-group-right { display: flex; gap: .5rem; }
+        .po-actions a, .po-actions button {
+            border: none; border-radius: 8px; font-size: .85rem; font-weight: 500;
+            padding: .55rem 1.2rem; display: inline-flex; align-items: center; gap: .4rem;
+            cursor: pointer; text-decoration: none;
+        }
+        .po-actions .primary { background: #4f46e5; color: #fff; }
+        .po-actions .primary:hover { background: #4338ca; }
+        .po-actions .success { background: #10b981; color: #fff; }
+        .po-actions .success:hover { background: #059669; }
+        .po-actions .outline { background: #fff; border: 1px solid #cbd5e1; color: #1e293b; }
+        .po-actions .outline:hover { background: #f1f5f9; }
+        .po-actions .danger { background: #ef4444; color: #fff; }
+
+        @media print {
+            .po-actions { display: none !important; }
+            body { background: #fff; padding: 0; }
+            .po-page { box-shadow: none; margin: 0; border-radius: 0; padding: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="po-actions">
+        <div class="btn-group-left">
+            <a href="{{ url_for('purchase_order_list') }}" class="outline">&larr; All Purchase Orders</a>
+        </div>
+        <div class="btn-group-right">
+            {% if po.status == 'draft' %}
+            <form action="{{ url_for('purchase_order_send', poid=po.id) }}" method="POST" style="display:inline;">
+                <button type="submit" class="primary" style="background:#0284c7;"><i class="bi bi-send"></i> Mark as Sent & Email Supplier</button>
+            </form>
+            {% endif %}
+            {% if po.status != 'received' %}
+            <form action="{{ url_for('purchase_order_receive', poid=po.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Confirm receipt of PO items? Product inventory quantities will be incremented into default warehouse.')">
+                <button type="submit" class="success"><i class="bi bi-box-seam"></i> Mark as Received & Restock</button>
+            </form>
+            {% endif %}
+            <button onclick="window.print()" class="outline"><i class="bi bi-printer"></i> Print</button>
+            <form action="{{ url_for('purchase_order_delete', poid=po.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Delete this purchase order?')">
+                <button type="submit" class="danger"><i class="bi bi-trash"></i> Delete</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="po-page">
+        <!-- Header -->
+        <div class="po-header">
+            <div class="po-brand">
+                <div class="po-brand-icon">PO</div>
+                <div>
+                    <div class="po-brand-name">StockFlow</div>
+                    <small style="color:#64748b; font-size:.78rem;">Purchasing & Procurement</small>
+                </div>
+            </div>
+            <div class="po-number">
+                <h2>PURCHASE ORDER</h2>
+                <p>#PO-{{ "%04d"|format(po.id) }}</p>
+                <div style="margin-top:.4rem;">
+                    <span class="status-badge {{ po.status }}">{{ po.status }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Supplier Info -->
+        <div class="po-info">
+            <div class="po-info-block">
+                <h6>Vendor / Supplier</h6>
+                <p>{{ po.supplier.name }}</p>
+                {% if po.supplier.email %}<p style="color:#64748b; font-size:.85rem;">{{ po.supplier.email }}</p>{% endif %}
+                {% if po.supplier.phone %}<p style="color:#64748b; font-size:.85rem;">{{ po.supplier.phone }}</p>{% endif %}
+                {% if po.supplier.address %}<p style="color:#64748b; font-size:.85rem;">{{ po.supplier.address }}</p>{% endif %}
+            </div>
+            <div class="po-info-block" style="text-align:right;">
+                <h6>Order Date</h6>
+                <p>{{ po.created_at.strftime('%B %d, %Y') if po.created_at else '—' }}</p>
+                {% if po.notes %}
+                <h6 style="margin-top:.75rem;">Notes</h6>
+                <p style="font-size:.85rem; color:#475569;">{{ po.notes }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Items Table -->
+        <table class="po-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Product</th>
+                    <th>SKU</th>
+                    <th>Qty</th>
+                    <th>Unit Cost</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in po.items %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td style="font-weight:600;">{{ item.product.name }}</td>
+                    <td><code>{{ item.product.sku }}</code></td>
+                    <td>{{ item.quantity }}</td>
+                    <td>${{ "%.2f"|format(item.unit_cost) }}</td>
+                    <td>${{ "%.2f"|format(item.total_cost) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Totals -->
+        <div class="po-totals">
+            <table>
+                <tr>
+                    <td>Total Ordered Units:</td>
+                    <td style="text-align:right;">{{ po.items_count }}</td>
+                </tr>
+                <tr class="total-row">
+                    <td>Grand Total:</td>
+                    <td style="text-align:right;">${{ "%.2f"|format(po.total_cost) }}</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Footer -->
+        <div class="po-footer">
+            Generated via StockFlow Procurement Management System.<br>
+            For inquiries regarding this PO, please contact your purchasing agent.
+        </div>
+    </div>
+</body>
+</html>

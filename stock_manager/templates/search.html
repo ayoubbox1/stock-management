@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% block title %}StockFlow – Global Search{% endblock %}
+
+{% block content %}
+<div class="sf-topbar">
+    <h1><i class="bi bi-search me-2" style="color:var(--sf-primary)"></i>Search Results</h1>
+</div>
+
+<!-- Search Input Card -->
+<div class="sf-card mb-4" style="max-width:700px;">
+    <form action="{{ url_for('search') }}" method="GET" class="d-flex gap-2">
+        <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="text" name="q" class="form-control" placeholder="Search products, customers, suppliers, invoices..." value="{{ query }}" autofocus>
+        </div>
+        <button type="submit" class="btn-sf primary">Search</button>
+    </form>
+</div>
+
+{% if query %}
+    {% if results and results.total > 0 %}
+        <p class="text-muted mb-4">Found <strong>{{ results.total }}</strong> result{{ 's' if results.total != 1 else '' }} for "<strong>{{ query }}</strong>":</p>
+
+        <!-- Products Results -->
+        {% if results.products %}
+        <div class="sf-card mb-4">
+            <h5 class="fw-semibold mb-3">
+                <i class="bi bi-box-seam me-2 text-primary"></i>Products ({{ results.products|length }})
+            </h5>
+            <div class="table-responsive">
+                <table class="sf-table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>SKU</th>
+                            <th>Category</th>
+                            <th>Stock</th>
+                            <th>Price</th>
+                            <th style="text-align:right;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in results.products %}
+                        <tr>
+                            <td class="fw-semibold">
+                                <a href="{{ url_for('product_edit', pid=p.id) }}" style="color:inherit; text-decoration:none;">
+                                    {{ p.name }}
+                                </a>
+                            </td>
+                            <td><code>{{ p.sku }}</code></td>
+                            <td>{{ p.category.name if p.category else '—' }}</td>
+                            <td>{{ p.quantity }}</td>
+                            <td>${{ "%.2f"|format(p.price) }}</td>
+                            <td style="text-align:right;">
+                                <a href="{{ url_for('product_edit', pid=p.id) }}" class="btn-sf outline btn-sm"><i class="bi bi-pencil"></i> Edit</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Customers Results -->
+        {% if results.customers %}
+        <div class="sf-card mb-4">
+            <h5 class="fw-semibold mb-3">
+                <i class="bi bi-people me-2 text-success"></i>Customers ({{ results.customers|length }})
+            </h5>
+            <div class="table-responsive">
+                <table class="sf-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Company</th>
+                            <th>Email</th>
+                            <th>Status</th>
+                            <th style="text-align:right;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in results.customers %}
+                        <tr>
+                            <td class="fw-semibold">
+                                <a href="{{ url_for('customer_detail', cid=c.id) }}" style="color:inherit; text-decoration:none;">
+                                    {{ c.name }}
+                                </a>
+                            </td>
+                            <td>{{ c.company or '—' }}</td>
+                            <td>{{ c.email or '—' }}</td>
+                            <td><span class="badge-status {{ c.status }}">{{ c.status }}</span></td>
+                            <td style="text-align:right;">
+                                <a href="{{ url_for('customer_detail', cid=c.id) }}" class="btn-sf outline btn-sm"><i class="bi bi-person"></i> View</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Suppliers Results -->
+        {% if results.suppliers %}
+        <div class="sf-card mb-4">
+            <h5 class="fw-semibold mb-3">
+                <i class="bi bi-truck me-2 text-warning"></i>Suppliers ({{ results.suppliers|length }})
+            </h5>
+            <div class="table-responsive">
+                <table class="sf-table">
+                    <thead>
+                        <tr>
+                            <th>Supplier Name</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th style="text-align:right;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in results.suppliers %}
+                        <tr>
+                            <td class="fw-semibold">
+                                <a href="{{ url_for('supplier_detail', sid=s.id) }}" style="color:inherit; text-decoration:none;">
+                                    {{ s.name }}
+                                </a>
+                            </td>
+                            <td>{{ s.email or '—' }}</td>
+                            <td>{{ s.phone or '—' }}</td>
+                            <td style="text-align:right;">
+                                <a href="{{ url_for('supplier_detail', sid=s.id) }}" class="btn-sf outline btn-sm"><i class="bi bi-eye"></i> View</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Invoices Results -->
+        {% if results.invoices %}
+        <div class="sf-card mb-4">
+            <h5 class="fw-semibold mb-3">
+                <i class="bi bi-receipt me-2 text-danger"></i>Invoices ({{ results.invoices|length }})
+            </h5>
+            <div class="table-responsive">
+                <table class="sf-table">
+                    <thead>
+                        <tr>
+                            <th>Invoice #</th>
+                            <th>Client</th>
+                            <th>Date</th>
+                            <th>Total</th>
+                            <th style="text-align:right;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for inv in results.invoices %}
+                        <tr>
+                            <td class="fw-semibold">
+                                <a href="{{ url_for('invoice_view', invoice_id=inv.id) }}" style="color:var(--sf-primary);">
+                                    #INV-{{ "%04d"|format(inv.id) }}
+                                </a>
+                            </td>
+                            <td>{{ inv.client_name }}</td>
+                            <td>{{ inv.created_at.strftime('%b %d, %Y') if inv.created_at else '—' }}</td>
+                            <td class="fw-semibold">{{ inv.currency_symbol }}{{ "%.2f"|format(inv.total_amount) }}</td>
+                            <td style="text-align:right;">
+                                <a href="{{ url_for('invoice_view', invoice_id=inv.id) }}" class="btn-sf outline btn-sm"><i class="bi bi-eye"></i> View</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+    {% else %}
+        <div class="text-center py-5 sf-card" style="color:var(--sf-muted);">
+            <i class="bi bi-search" style="font-size:2.5rem;"></i>
+            <h5 class="mt-3 mb-1">No results found</h5>
+            <p class="mb-0">No matches for "<strong>{{ query }}</strong>". Try searching for a different keyword or SKU.</p>
+        </div>
+    {% endif %}
+{% else %}
+    <div class="text-center py-5 sf-card" style="color:var(--sf-muted);">
+        <i class="bi bi-search" style="font-size:2.5rem;"></i>
+        <h5 class="mt-3 mb-1">Ready to search</h5>
+        <p class="mb-0">Enter a product name, SKU, customer name, supplier, or invoice number above.</p>
+    </div>
+{% endif %}
+{% endblock %}

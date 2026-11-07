@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}StockFlow – Inter-Warehouse Stock Transfer{% endblock %}
+
+{% block content %}
+<div class="sf-topbar">
+    <div>
+        <h1><i class="bi bi-shuffle me-2" style="color:var(--sf-primary)"></i>Inter-Warehouse Stock Transfer</h1>
+        <p class="text-muted mb-0" style="font-size:.85rem;">Move stock units safely between warehouses with automated validation and audit trail.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('warehouse_transfers') }}" class="btn-sf outline"><i class="bi bi-clock-history"></i> Transfer Logs</a>
+        <a href="{{ url_for('warehouse_list') }}" class="btn-sf outline"><i class="bi bi-buildings"></i> Warehouses</a>
+    </div>
+</div>
+
+<div class="sf-card" style="max-width: 650px;">
+    <form method="POST" action="{{ url_for('warehouse_transfer_create') }}">
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">From Warehouse (Origin) <span class="text-danger">*</span></label>
+                <select name="from_warehouse_id" id="fromWarehouseSelect" class="form-select" style="border-radius:8px;" required onchange="updateAvailableStock()">
+                    <option value="">— Select Origin —</option>
+                    {% for wh in warehouses %}
+                    <option value="{{ wh.id }}" {% if selected_from_id == wh.id %}selected{% endif %}>
+                        {{ wh.name }} {% if wh.is_default %}(Default){% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">To Warehouse (Destination) <span class="text-danger">*</span></label>
+                <select name="to_warehouse_id" id="toWarehouseSelect" class="form-select" style="border-radius:8px;" required>
+                    <option value="">— Select Destination —</option>
+                    {% for wh in warehouses %}
+                    <option value="{{ wh.id }}">
+                        {{ wh.name }} {% if wh.is_default %}(Default){% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Product to Transfer <span class="text-danger">*</span></label>
+            <select name="product_id" id="productSelect" class="form-select" style="border-radius:8px;" required onchange="updateAvailableStock()">
+                <option value="">— Select Product —</option>
+                {% for p in products %}
+                <option value="{{ p.id }}" {% if selected_product_id == p.id %}selected{% endif %}>
+                    {{ p.name }} (SKU: {{ p.sku }}) — ${{ "%.2f"|format(p.price) }}
+                </option>
+                {% endfor %}
+            </select>
+            <div class="form-text" id="originStockNotice" style="font-size:.8rem; color:var(--sf-primary);">
+                Select an origin warehouse and product to check available stock.
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label fw-semibold">Transfer Quantity <span class="text-danger">*</span></label>
+            <div class="input-group" style="max-width:220px;">
+                <input type="number" name="quantity" id="quantityInput" class="form-control" style="border-radius:8px;"
+                       min="1" value="1" required>
+                <span class="input-group-text" style="border-radius:0 8px 8px 0;">Units</span>
+            </div>
+        </div>
+
+        <div class="d-flex align-items-center justify-content-end gap-2 border-top pt-3">
+            <a href="{{ url_for('warehouse_list') }}" class="btn-sf outline">Cancel</a>
+            <button type="submit" class="btn-sf primary">
+                <i class="bi bi-arrow-left-right"></i> Execute Transfer
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const stockMap = {{ stock_map_json|safe }};
+
+function updateAvailableStock() {
+    const fromId = document.getElementById('fromWarehouseSelect').value;
+    const prodId = document.getElementById('productSelect').value;
+    const notice = document.getElementById('originStockNotice');
+    const qtyInput = document.getElementById('quantityInput');
+
+    if (fromId && prodId) {
+        const key = fromId + "_" + prodId;
+        const available = stockMap[key] || 0;
+        notice.innerHTML = `Available stock in selected origin: <strong>${available} units</strong>`;
+        if (available <= 0) {
+            notice.className = 'form-text text-danger fw-semibold';
+        } else {
+            notice.className = 'form-text text-success fw-semibold';
+        }
+        qtyInput.max = available > 0 ? available : 1;
+    } else {
+        notice.textContent = "Select an origin warehouse and product to check available stock.";
+        notice.className = 'form-text text-muted';
+    }
+}
+document.addEventListener('DOMContentLoaded', updateAvailableStock);
+</script>
+{% endblock %}

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}StockFlow – {{ "Edit" if supplier else "New" }} Supplier{% endblock %}
+
+{% block content %}
+<div class="sf-topbar">
+    <h1>
+        <i class="bi bi-{{ 'pencil' if supplier else 'truck' }} me-2" style="color:var(--sf-primary)"></i>
+        {{ "Edit Supplier" if supplier else "New Supplier" }}
+    </h1>
+    <a href="{{ url_for('supplier_list') }}" class="btn-sf outline"><i class="bi bi-arrow-left"></i> Back</a>
+</div>
+
+<div class="sf-card" style="max-width:640px;">
+    <form method="POST">
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Supplier Name *</label>
+            <input type="text" name="name" class="form-control" style="border-radius:8px;" required
+                   value="{{ supplier.name if supplier else '' }}" placeholder="e.g. Apex Global Supplies">
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Email</label>
+                <input type="email" name="email" class="form-control" style="border-radius:8px;"
+                       value="{{ supplier.email if supplier else '' }}" placeholder="contact@supplier.com">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Phone</label>
+                <input type="tel" name="phone" class="form-control" style="border-radius:8px;"
+                       value="{{ supplier.phone if supplier else '' }}" placeholder="+1 555-0199">
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Address</label>
+            <textarea name="address" class="form-control" style="border-radius:8px;" rows="2"
+                      placeholder="Warehouse address, City, Country">{{ supplier.address if supplier else '' }}</textarea>
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label fw-semibold">Notes</label>
+            <textarea name="notes" class="form-control" style="border-radius:8px;" rows="3"
+                      placeholder="Payment terms, delivery schedules, representative info...">{{ supplier.notes if supplier else '' }}</textarea>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn-sf primary"><i class="bi bi-check-lg"></i> {{ "Update" if supplier else "Create" }}</button>
+            <a href="{{ url_for('supplier_list') }}" class="btn-sf outline">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

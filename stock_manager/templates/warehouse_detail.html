@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}StockFlow – {{ warehouse.name }}{% endblock %}
+
+{% block content %}
+<div class="sf-topbar">
+    <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <h1 class="mb-0"><i class="bi bi-building me-2" style="color:var(--sf-primary)"></i>{{ warehouse.name }}</h1>
+            {% if warehouse.is_default %}
+            <span class="badge bg-primary rounded-pill px-3 py-1">Default Warehouse</span>
+            {% endif %}
+        </div>
+        <p class="text-muted mb-0" style="font-size:.85rem;">
+            <i class="bi bi-geo-alt"></i> {{ warehouse.location or 'No address specified' }}
+            {% if warehouse.notes %} &bull; {{ warehouse.notes }}{% endif %}
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('warehouse_list') }}" class="btn-sf outline"><i class="bi bi-arrow-left"></i> All Warehouses</a>
+        <a href="{{ url_for('warehouse_transfer_create') }}?from_id={{ warehouse.id }}" class="btn-sf outline"><i class="bi bi-shuffle"></i> Transfer Stock</a>
+        <a href="{{ url_for('warehouse_stock_manage', wid=warehouse.id) }}" class="btn-sf primary"><i class="bi bi-sliders"></i> Manage Stock Levels</a>
+    </div>
+</div>
+
+<!-- Metrics Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="sf-card sf-stat-card">
+            <div class="sf-stat-icon blue"><i class="bi bi-box-seam"></i></div>
+            <div>
+                <div class="sf-stat-value">{{ warehouse.total_skus }}</div>
+                <div class="sf-stat-label">Stocked SKUs</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="sf-card sf-stat-card">
+            <div class="sf-stat-icon green"><i class="bi bi-layers"></i></div>
+            <div>
+                <div class="sf-stat-value text-success">{{ warehouse.total_units }}</div>
+                <div class="sf-stat-label">Total Inventory Units</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="sf-card sf-stat-card">
+            <div class="sf-stat-icon purple"><i class="bi bi-arrow-left-right"></i></div>
+            <div>
+                <div class="sf-stat-value">{{ recent_transfers_count|default(0) }}</div>
+                <div class="sf-stat-label">Recent Stock Transfers</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stock Items Table -->
+<div class="sf-card">
+    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <h5 class="fw-semibold mb-0"><i class="bi bi-boxes me-2"></i>Inventory Stored at this Facility</h5>
+        <div style="max-width:250px;">
+            <input type="text" id="productFilterInput" onkeyup="filterStockTable()" class="form-control form-control-sm" placeholder="Filter products...">
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="sf-table" id="stockTable">
+            <thead>
+                <tr>
+                    <th style="width:50px;"></th>
+                    <th>Product</th>
+                    <th>SKU</th>
+                    <th>Category</th>
+                    <th style="text-align:center;">This Warehouse</th>
+                    <th style="text-align:center;">Global Total</th>
+                    <th style="text-align:right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in stock_entries %}
+                <tr>
+                    <td>
+                        {% if entry.product.image_url %}
+                            <img src="{{ entry.product.image_url }}" class="product-thumb" alt="{{ entry.product.name }}">
+                        {% else %}
+                            <div class="product-thumb-placeholder"><i class="bi bi-image"></i></div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div style="font-weight:600;">{{ entry.product.name }}</div>
+                        <div style="font-size:.78rem; color:var(--sf-muted);">${{ "%.2f"|format(entry.product.price) }}</div>
+                    </td>
+                    <td><code>{{ entry.product.sku }}</code></td>
+                    <td>
+                        {% if entry.product.category %}
+                            <span class="badge" style="background-color:{{ entry.product.category.color }}; color:#fff; font-size:.75rem;">
+                                {{ entry.product.category.name }}
+                            </span>
+                        {% else %}
+                            <span style="color:var(--sf-muted); font-size:.8rem;">—</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align:center;">
+                        {% if entry.quantity == 0 %}
+                            <span class="badge-stock out">0</span>
+                        {% elif entry.quantity <= 5 %}
+                            <span class="badge-stock low">{{ entry.quantity }}</span>
+                        {% else %}
+                            <span class="badge-stock ok">{{ entry.quantity }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align:center;">
+                        <span class="badge bg-light text-dark border">{{ entry.product.quantity }}</span>
+                    </td>
+                    <td style="text-align:right;">
+                        <a href="{{ url_for('warehouse_transfer_create') }}?from_id={{ warehouse.id }}&product_id={{ entry.product.id }}"
+                           class="btn-sf outline btn-sm" title="Transfer this product">
+                            <i class="bi bi-shuffle"></i> Transfer
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-4">
+                        No products currently stocked in this warehouse. Click "Manage Stock Levels" to initialize inventory.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function filterStockTable() {
+    const filter = document.getElementById('productFilterInput').value.toLowerCase();
+    const rows = document.querySelectorAll('#stockTable tbody tr');
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(filter) ? '' : 'none';
+    });
+}
+</script>
+{% endblock %}

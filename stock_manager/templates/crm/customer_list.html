@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}StockFlow – Customers{% endblock %}
+
+{% block content %}
+<div class="sf-topbar">
+    <h1><i class="bi bi-people me-2" style="color:var(--sf-primary)"></i>Customers</h1>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{{ url_for('export_customers') }}" class="btn-sf outline"><i class="bi bi-download"></i> Export CSV</a>
+        <a href="{{ url_for('customer_create') }}" class="btn-sf primary"><i class="bi bi-person-plus"></i> Add Customer</a>
+    </div>
+</div>
+
+<!-- Status filter tabs -->
+<div class="d-flex gap-2 mb-3 flex-wrap">
+    {% set filters = [('all','All'),('lead','Leads'),('active','Active'),('inactive','Inactive')] %}
+    {% for val, label in filters %}
+    <a href="{{ url_for('customer_list', status=val) }}"
+       class="btn-sf {{ 'primary' if status_filter == val else 'outline' }}" style="font-size:.8rem;">
+        {{ label }}
+    </a>
+    {% endfor %}
+</div>
+
+<div class="sf-card">
+    {% if customers %}
+    <div class="d-flex justify-content-end mb-3">
+        <input type="text" id="custSearch" class="form-control form-control-sm" style="max-width:220px;border-radius:8px;" placeholder="Search customers…" onkeyup="filterCust()">
+    </div>
+    <div class="table-responsive">
+        <table class="sf-table" id="custTable">
+            <thead>
+                <tr>
+                    <th style="width:50px;"></th>
+                    <th>Name</th>
+                    <th>Company</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Status</th>
+                    <th>Invoices</th>
+                    <th>Total Spent</th>
+                    <th style="text-align:right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set colors = ['blue','green','amber','red','cyan'] %}
+                {% for c in customers %}
+                <tr>
+                    <td>
+                        <div class="avatar {{ colors[loop.index0 % 5] }}">{{ c.initials }}</div>
+                    </td>
+                    <td>
+                        <a href="{{ url_for('customer_detail', cid=c.id) }}" style="font-weight:600; color:var(--sf-text); text-decoration:none;">
+                            {{ c.name }}
+                        </a>
+                    </td>
+                    <td>{{ c.company or '—' }}</td>
+                    <td>{{ c.email or '—' }}</td>
+                    <td>{{ c.phone or '—' }}</td>
+                    <td><span class="badge-status {{ c.status }}">{{ c.status|capitalize }}</span></td>
+                    <td>{{ c.invoices|length }}</td>
+                    <td style="font-weight:600;">${{ "%.2f"|format(c.total_spent) }}</td>
+                    <td style="text-align:right;">
+                        <a href="{{ url_for('customer_detail', cid=c.id) }}" class="btn-sf outline btn-sm"><i class="bi bi-eye"></i></a>
+                        <a href="{{ url_for('customer_edit', cid=c.id) }}" class="btn-sf outline btn-sm"><i class="bi bi-pencil"></i></a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5" style="color:var(--sf-muted);">
+        <i class="bi bi-people" style="font-size:2.5rem;"></i>
+        <p class="mt-2 mb-0">No customers found. <a href="{{ url_for('customer_create') }}">Add your first customer</a>.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function filterCust() {
+    const q = document.getElementById('custSearch').value.toLowerCase();
+    document.querySelectorAll('#custTable tbody tr').forEach(row => {
+        row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+}
+</script>
+{% endblock %}

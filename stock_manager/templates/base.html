@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}StockFlow{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        (function() {
+            if (localStorage.getItem('sf-dark') === 'true') {
+                document.documentElement.classList.add('dark-mode');
+                document.addEventListener('DOMContentLoaded', function() {
+                    document.body.classList.add('dark-mode');
+                });
+            }
+        })();
+    </script>
+    <style>
+        :root {
+            --sf-primary: #4f46e5; --sf-primary-hover: #4338ca;
+            --sf-success: #10b981; --sf-danger: #ef4444;
+            --sf-warning: #f59e0b; --sf-info: #06b6d4;
+            --sf-bg: #f8fafc; --sf-card: #ffffff;
+            --sf-border: #e2e8f0;
+            --sf-sidebar: #1e293b; --sf-sidebar-hover: #334155;
+            --sf-text: #1e293b; --sf-muted: #64748b;
+        }
+
+        body.dark-mode {
+            --sf-bg: #0f172a;
+            --sf-card: #1e293b;
+            --sf-border: #334155;
+            --sf-sidebar: #0f172a;
+            --sf-sidebar-hover: #1e293b;
+            --sf-text: #f8fafc;
+            --sf-muted: #94a3b8;
+        }
+
+        * { font-family: 'Inter', sans-serif; }
+        body { background: var(--sf-bg); color: var(--sf-text); min-height: 100vh; transition: background-color .2s, color .2s; }
+
+        .sf-sidebar {
+            width: 260px; height: 100vh; max-height: 100vh; background: var(--sf-sidebar);
+            position: fixed; top: 0; left: 0; z-index: 1000;
+            display: flex; flex-direction: column; transition: transform .3s ease;
+            overflow: hidden;
+        }
+        .sf-sidebar .brand {
+            padding: 1.25rem 1.25rem 0.75rem; display: flex; align-items: center; gap: .75rem;
+            flex-shrink: 0;
+        }
+        .sf-sidebar .brand-icon {
+            width: 40px; height: 40px; border-radius: 10px;
+            background: linear-gradient(135deg, var(--sf-primary), #7c3aed);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.25rem; color: #fff;
+            flex-shrink: 0;
+        }
+        .sf-sidebar .brand-text { color: #fff; font-weight: 700; font-size: 1.15rem; }
+        .sf-sidebar .nav-section {
+            padding: .5rem .75rem;
+            flex: 1 1 auto;
+            overflow-y: auto;
+            overflow-x: hidden;
+            min-height: 0;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+        }
+        .sf-sidebar .nav-section::-webkit-scrollbar {
+            width: 6px;
+        }
+        .sf-sidebar .nav-section::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .sf-sidebar .nav-section::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.22);
+            border-radius: 4px;
+        }
+        .sf-sidebar .nav-section::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.38);
+        }
+        .sf-sidebar .nav-link {
+            color: rgba(255,255,255,.65); border-radius: 8px; padding: .55rem .9rem;
+            display: flex; align-items: center; gap: .65rem; font-size: .86rem;
+            margin-bottom: 2px; transition: all .2s; text-decoration: none;
+        }
+        .sf-sidebar .nav-link:hover, .sf-sidebar .nav-link.active {
+            background: var(--sf-sidebar-hover); color: #fff;
+        }
+        .sf-sidebar .nav-link.active { box-shadow: inset 3px 0 0 var(--sf-primary); }
+        .sf-sidebar .nav-label {
+            color: rgba(255,255,255,.35); font-size: .68rem; text-transform: uppercase;
+            letter-spacing: .08em; padding: .65rem .9rem .3rem; font-weight: 600;
+        }
+
+        .sf-sidebar-search {
+            padding: 0 1rem .75rem;
+            border-bottom: 1px solid rgba(255,255,255,.08);
+            flex-shrink: 0;
+        }
+        .sf-sidebar-search .input-group {
+            background: rgba(255,255,255,.08);
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,.12);
+        }
+        .sf-sidebar-search input {
+            background: transparent;
+            border: none;
+            color: #fff;
+            font-size: .82rem;
+            padding: .4rem .6rem;
+        }
+        .sf-sidebar-search input::placeholder {
+            color: rgba(255,255,255,.45);
+        }
+        .sf-sidebar-search input:focus {
+            outline: none;
+            background: transparent;
+            color: #fff;
+            box-shadow: none;
+        }
+        .sf-sidebar-search .btn {
+            background: transparent;
+            border: none;
+            color: rgba(255,255,255,.5);
+            padding: .4rem .6rem;
+        }
+        .sf-sidebar-search .btn:hover {
+            color: #fff;
+        }
+
+        .sf-main { margin-left: 260px; padding: 1.5rem 2rem 3rem; }
+        .sf-topbar {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 1.5rem; flex-wrap: wrap; gap: .75rem;
+        }
+        .sf-topbar h1 { font-size: 1.5rem; font-weight: 700; margin: 0; color: var(--sf-text); }
+
+        .sf-card {
+            background: var(--sf-card); border: 1px solid var(--sf-border);
+            border-radius: 12px; padding: 1.25rem 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,.04);
+            color: var(--sf-text);
+        }
+        .sf-stat-card { display: flex; align-items: center; gap: 1rem; }
+        .sf-stat-icon {
+            width: 48px; height: 48px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0;
+        }
+        .sf-stat-icon.blue   { background: #ede9fe; color: var(--sf-primary); }
+        .sf-stat-icon.green  { background: #d1fae5; color: var(--sf-success); }
+        .sf-stat-icon.amber  { background: #fef3c7; color: var(--sf-warning); }
+        .sf-stat-icon.red    { background: #fee2e2; color: var(--sf-danger); }
+        .sf-stat-icon.cyan   { background: #cffafe; color: var(--sf-info); }
+        .sf-stat-icon.purple { background: #f3e8ff; color: #9333ea; }
+        .sf-stat-value { font-size: 1.5rem; font-weight: 700; line-height: 1.1; color: var(--sf-text); }
+        .sf-stat-label { color: var(--sf-muted); font-size: .8rem; }
+
+        .sf-table { width: 100%; border-collapse: separate; border-spacing: 0; color: var(--sf-text); }
+        .sf-table thead th {
+            background: #f1f5f9; font-size: .75rem; text-transform: uppercase;
+            letter-spacing: .05em; color: var(--sf-muted); padding: .75rem 1rem;
+            border-bottom: 1px solid var(--sf-border);
+        }
+        .sf-table thead th:first-child { border-radius: 8px 0 0 0; }
+        .sf-table thead th:last-child  { border-radius: 0 8px 0 0; }
+        .sf-table tbody td {
+            padding: .75rem 1rem; border-bottom: 1px solid var(--sf-border);
+            font-size: .9rem; vertical-align: middle;
+        }
+        .sf-table tbody tr:hover td { background: #f8fafc; }
+
+        body.dark-mode .sf-table thead th {
+            background: #0f172a;
+            color: var(--sf-muted);
+            border-bottom-color: var(--sf-border);
+        }
+        body.dark-mode .sf-table tbody tr:hover td {
+            background: #243044;
+        }
+        body.dark-mode .form-control, body.dark-mode .form-select {
+            background-color: #0f172a;
+            color: #f8fafc;
+            border-color: #334155;
+        }
+        body.dark-mode .form-control:focus, body.dark-mode .form-select:focus {
+            background-color: #0f172a;
+            color: #f8fafc;
+            border-color: #6366f1;
+        }
+        body.dark-mode .form-control::placeholder {
+            color: #64748b;
+        }
+        body.dark-mode .input-group-text {
+            background-color: #1e293b;
+            color: #94a3b8;
+            border-color: #334155;
+        }
+
+        .badge-stock { font-size: .75rem; padding: .3em .7em; border-radius: 6px; font-weight: 500; }
+        .badge-stock.ok  { background: #d1fae5; color: #065f46; }
+        .badge-stock.low { background: #fef3c7; color: #92400e; }
+        .badge-stock.out { background: #fee2e2; color: #991b1b; }
+
+        .badge-status { font-size: .75rem; padding: .3em .7em; border-radius: 6px; font-weight: 500; }
+        .badge-status.lead     { background: #dbeafe; color: #1e40af; }
+        .badge-status.active   { background: #d1fae5; color: #065f46; }
+        .badge-status.inactive { background: #f1f5f9; color: #64748b; }
+        body.dark-mode .badge-status.inactive { background: #334155; color: #94a3b8; }
+
+        .badge-role { font-size: .7rem; padding: .25em .6em; border-radius: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+        .badge-role.admin   { background: #f3e8ff; color: #7e22ce; }
+        .badge-role.manager { background: #dbeafe; color: #1d4ed8; }
+        .badge-role.staff   { background: #f1f5f9; color: #475569; }
+        body.dark-mode .badge-role.admin   { background: #3b0764; color: #d8b4fe; }
+        body.dark-mode .badge-role.manager { background: #1e3a8a; color: #93c5fd; }
+        body.dark-mode .badge-role.staff   { background: #334155; color: #cbd5e1; }
+
+        .badge-po { font-size: .75rem; padding: .3em .7em; border-radius: 6px; font-weight: 500; text-transform: capitalize; }
+        .badge-po.draft    { background: #f1f5f9; color: #64748b; }
+        .badge-po.sent     { background: #dbeafe; color: #1e40af; }
+        .badge-po.received { background: #d1fae5; color: #065f46; }
+
+        .badge-return { font-size: .75rem; padding: .3em .7em; border-radius: 6px; font-weight: 500; text-transform: capitalize; }
+        .badge-return.pending  { background: #fef3c7; color: #92400e; }
+        .badge-return.approved { background: #d1fae5; color: #065f46; }
+        .badge-return.rejected { background: #fee2e2; color: #991b1b; }
+
+        .tag-pill {
+            display: inline-flex; align-items: center; gap: .3rem;
+            padding: .2em .6em; border-radius: 6px; font-size: .72rem;
+            font-weight: 500; color: #fff; text-decoration: none;
+            transition: opacity .15s;
+        }
+        .tag-pill:hover { opacity: .85; color: #fff; }
+
+        .btn-sf {
+            border: none; border-radius: 8px; font-size: .85rem; font-weight: 500;
+            padding: .5rem 1.1rem; display: inline-flex; align-items: center; gap: .4rem;
+            transition: all .15s; cursor: pointer; text-decoration: none;
+        }
+        .btn-sf.primary { background: var(--sf-primary); color: #fff; }
+        .btn-sf.primary:hover { background: var(--sf-primary-hover); color: #fff; }
+        .btn-sf.outline { background: transparent; border: 1px solid var(--sf-border); color: var(--sf-text); }
+        .btn-sf.outline:hover { background: rgba(0,0,0,.05); }
+        body.dark-mode .btn-sf.outline { border-color: #334155; color: #f8fafc; }
+        body.dark-mode .btn-sf.outline:hover { background: #334155; }
+        .btn-sf.danger { background: var(--sf-danger); color: #fff; }
+        .btn-sf.danger:hover { background: #dc2626; color: #fff; }
+        .btn-sf.success { background: var(--sf-success); color: #fff; }
+        .btn-sf.success:hover { background: #059669; color: #fff; }
+        .btn-sf.warning { background: var(--sf-warning); color: #fff; }
+        .btn-sf.warning:hover { background: #d97706; color: #fff; }
+
+        .sf-flash {
+            border-radius: 8px; padding: .75rem 1rem; margin-bottom: 1rem;
+            font-size: .88rem; display: flex; align-items: center; gap: .5rem;
+            background: #ede9fe; color: var(--sf-primary); border: 1px solid #c4b5fd;
+        }
+        .sf-flash.danger { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+        body.dark-mode .sf-flash {
+            background: #1e1b4b; color: #c7d2fe; border-color: #4338ca;
+        }
+
+        .product-thumb {
+            width: 40px; height: 40px; border-radius: 8px; object-fit: cover;
+            border: 1px solid var(--sf-border);
+        }
+        .product-thumb-placeholder {
+            width: 40px; height: 40px; border-radius: 8px;
+            background: #f1f5f9; display: flex; align-items: center;
+            justify-content: center; color: #94a3b8; font-size: 1rem;
+        }
+        body.dark-mode .product-thumb-placeholder {
+            background: #334155; color: #94a3b8;
+        }
+
+        .avatar {
+            width: 40px; height: 40px; border-radius: 50%;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-weight: 600; font-size: .85rem; color: #fff; flex-shrink: 0;
+        }
+        .avatar.sm { width: 32px; height: 32px; font-size: .75rem; }
+        .avatar.blue   { background: linear-gradient(135deg, #4f46e5, #7c3aed); }
+        .avatar.green  { background: linear-gradient(135deg, #10b981, #059669); }
+        .avatar.amber  { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .avatar.red    { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        .avatar.cyan   { background: linear-gradient(135deg, #06b6d4, #0891b2); }
+
+        .img-preview-wrap {
+            width: 120px; height: 120px; border-radius: 12px; overflow: hidden;
+            border: 2px dashed #cbd5e1; display: flex; align-items: center;
+            justify-content: center; position: relative; cursor: pointer;
+            transition: border-color .2s;
+        }
+        body.dark-mode .img-preview-wrap { border-color: #334155; }
+        .img-preview-wrap:hover { border-color: var(--sf-primary); }
+        .img-preview-wrap img {
+            width: 100%; height: 100%; object-fit: cover;
+        }
+        .img-preview-wrap .placeholder-text {
+            text-align: center; color: #94a3b8; font-size: .75rem;
+        }
+
+        .sf-sidebar-footer {
+            flex-shrink: 0;
+            margin-top: auto;
+            border-top: 1px solid rgba(255,255,255,.08);
+        }
+        .user-footer-card {
+            padding: .85rem 1rem;
+            border-top: 1px solid rgba(255,255,255,.08);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: .5rem;
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 768px) {
+            .sf-sidebar { transform: translateX(-100%); }
+            .sf-sidebar.open { transform: translateX(0); }
+            .sf-main { margin-left: 0; padding: 1rem; }
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <nav class="sf-sidebar" id="sidebar">
+        <!-- Brand -->
+        <div class="brand">
+            <div class="brand-icon"><i class="bi bi-box-seam"></i></div>
+            <span class="brand-text">StockFlow</span>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="sf-sidebar-search">
+            <form action="{{ url_for('search') }}" method="GET">
+                <div class="input-group">
+                    <input type="text" name="q" class="form-control" placeholder="Search anything..." value="{{ request.args.get('q', '') }}">
+                    <button type="submit" class="btn"><i class="bi bi-search"></i></button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Navigation Links -->
+        <div class="nav-section">
+            <!-- Main -->
+            <div class="nav-label">Main</div>
+            <a href="{{ url_for('index') }}" class="nav-link {% if request.endpoint == 'index' and not request.args.get('tag') %}active{% endif %}">
+                <i class="bi bi-grid-1x2"></i> Dashboard
+            </a>
+            <a href="{{ url_for('analytics') }}" class="nav-link {% if request.endpoint == 'analytics' %}active{% endif %}">
+                <i class="bi bi-graph-up"></i> Analytics
+            </a>
+            <a href="{{ url_for('alerts') }}" class="nav-link {% if request.endpoint == 'alerts' %}active{% endif %}">
+                <i class="bi bi-bell"></i> Alerts
+                {% if low_stock_count > 0 %}
+                <span style="background:#ef4444;color:#fff;border-radius:9999px;font-size:.65rem;padding:.1rem .4rem;margin-left:auto;">{{ low_stock_count }}</span>
+                {% endif %}
+            </a>
+            <a href="{{ url_for('activity_log') }}" class="nav-link {% if request.endpoint == 'activity_log' %}active{% endif %}">
+                <i class="bi bi-clock-history"></i> Activity
+            </a>
+            <a href="{{ url_for('scanner') }}" class="nav-link {% if request.endpoint == 'scanner' %}active{% endif %}">
+                <i class="bi bi-camera"></i> Scanner
+            </a>
+
+            <!-- Inventory -->
+            <div class="nav-label">Inventory</div>
+            <a href="{{ url_for('index') }}" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">
+                <i class="bi bi-box-seam"></i> Products
+            </a>
+            <a href="{{ url_for('product_create') }}" class="nav-link {% if request.endpoint == 'product_create' %}active{% endif %}">
+                <i class="bi bi-plus-circle"></i> Add Product
+            </a>
+            <a href="{{ url_for('category_list') }}" class="nav-link {% if request.endpoint in ['category_list', 'category_create', 'category_edit'] %}active{% endif %}">
+                <i class="bi bi-grid-3x3-gap"></i> Categories
+            </a>
+            <a href="{{ url_for('tag_list') }}" class="nav-link {% if request.endpoint in ['tag_list', 'tag_create', 'tag_edit'] %}active{% endif %}">
+                <i class="bi bi-tags"></i> Tags
+            </a>
+
+            <!-- Invoices -->
+            <div class="nav-label">Invoices</div>
+            <a href="{{ url_for('invoice_list') }}" class="nav-link {% if request.endpoint == 'invoice_list' %}active{% endif %}">
+                <i class="bi bi-receipt"></i> All Invoices
+            </a>
+            <a href="{{ url_for('invoice_create') }}" class="nav-link {% if request.endpoint == 'invoice_create' %}active{% endif %}">
+                <i class="bi bi-file-earmark-plus"></i> New Invoice
+            </a>
+            <a href="{{ url_for('return_list') }}" class="nav-link {% if request.endpoint in ['return_list', 'invoice_return_create'] %}active{% endif %}">
+                <i class="bi bi-arrow-counterclockwise"></i> Returns
+            </a>
+
+            <!-- CRM -->
+            <div class="nav-label">CRM</div>
+            <a href="{{ url_for('customer_list') }}" class="nav-link {% if request.endpoint in ['customer_list', 'customer_detail', 'customer_edit'] and not request.path.startswith('/supplier') %}active{% endif %}">
+                <i class="bi bi-people"></i> Customers
+            </a>
+            <a href="{{ url_for('customer_create') }}" class="nav-link {% if request.endpoint == 'customer_create' %}active{% endif %}">
+                <i class="bi bi-person-plus"></i> Add Customer
+            </a>
+
+            <!-- Suppliers -->
+            <div class="nav-label">Suppliers</div>
+            <a href="{{ url_for('supplier_list') }}" class="nav-link {% if request.endpoint in ['supplier_list', 'supplier_detail', 'supplier_edit'] %}active{% endif %}">
+                <i class="bi bi-truck"></i> All Suppliers
+            </a>
+            <a href="{{ url_for('supplier_create') }}" class="nav-link {% if request.endpoint == 'supplier_create' %}active{% endif %}">
+                <i class="bi bi-plus-square"></i> Add Supplier
+            </a>
+            <a href="{{ url_for('purchase_order_list') }}" class="nav-link {% if request.endpoint in ['purchase_order_list', 'purchase_order_create', 'purchase_order_detail'] %}active{% endif %}">
+                <i class="bi bi-cart-check"></i> Purchase Orders
+            </a>
+
+            <!-- Warehouses -->
+            <div class="nav-label">Warehouses</div>
+            <a href="{{ url_for('warehouse_list') }}" class="nav-link {% if request.endpoint in ['warehouse_list', 'warehouse_detail', 'warehouse_stock_manage'] %}active{% endif %}">
+                <i class="bi bi-buildings"></i> All Warehouses
+            </a>
+            <a href="{{ url_for('warehouse_create') }}" class="nav-link {% if request.endpoint == 'warehouse_create' %}active{% endif %}">
+                <i class="bi bi-building-add"></i> Add Warehouse
+            </a>
+            <a href="{{ url_for('warehouse_transfers') }}" class="nav-link {% if request.endpoint in ['warehouse_transfers', 'warehouse_transfer_create'] %}active{% endif %}">
+                <i class="bi bi-arrow-left-right"></i> Transfers
+            </a>
+
+            <!-- Settings -->
+            <div class="nav-label">Settings</div>
+            <a href="{{ url_for('settings_email') }}" class="nav-link {% if request.endpoint == 'settings_email' %}active{% endif %}">
+                <i class="bi bi-envelope"></i> Email
+            </a>
+            <a href="{{ url_for('api_docs') }}" class="nav-link {% if request.endpoint == 'api_docs' %}active{% endif %}">
+                <i class="bi bi-braces"></i> API Docs
+            </a>
+            <a href="{{ url_for('settings_permissions') }}" class="nav-link {% if request.endpoint == 'settings_permissions' %}active{% endif %}">
+                <i class="bi bi-shield-check"></i> Permissions
+            </a>
+            <a href="{{ url_for('settings_schedules') }}" class="nav-link {% if request.endpoint == 'settings_schedules' %}active{% endif %}">
+                <i class="bi bi-clock"></i> Schedules
+            </a>
+            <a href="{{ url_for('currency_list') }}" class="nav-link {% if request.endpoint == 'currency_list' %}active{% endif %}">
+                <i class="bi bi-currency-exchange"></i> Currencies
+            </a>
+            {% if current_user.is_authenticated and current_user.role == 'admin' %}
+            <a href="{{ url_for('user_list') }}" class="nav-link {% if request.endpoint in ['user_list', 'user_edit'] %}active{% endif %}">
+                <i class="bi bi-shield-lock"></i> Users
+            </a>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar Footer -->
+        <div class="sf-sidebar-footer" style="padding:0.75rem 1rem;">
+            <button type="button" class="btn btn-sm w-100 d-flex align-items-center justify-content-center gap-2 mb-2" id="darkModeBtn" onclick="toggleDarkMode()" style="background:rgba(255,255,255,0.08);color:#fff;border:1px solid rgba(255,255,255,0.15);border-radius:8px;font-size:0.8rem;">
+                <i class="bi bi-moon-stars" id="darkModeIcon"></i> <span id="darkModeText">Dark Mode</span>
+            </button>
+        </div>
+
+        {% if current_user.is_authenticated %}
+        <div class="user-footer-card">
+            <div class="d-flex align-items-center gap-2 overflow-hidden">
+                <div class="avatar sm blue">{{ current_user.initials }}</div>
+                <div style="line-height:1.2; overflow:hidden;">
+                    <div style="color:#fff; font-weight:600; font-size:.82rem; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">
+                        {{ current_user.username }}
+                    </div>
+                    <span class="badge-role {{ current_user.role }}">{{ current_user.role }}</span>
+                </div>
+            </div>
+            <a href="{{ url_for('logout') }}" title="Logout" style="color:rgba(255,255,255,.5); font-size:1.1rem; padding:.2rem .4rem; text-decoration:none;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='rgba(255,255,255,.5)'">
+                <i class="bi bi-box-arrow-right"></i>
+            </a>
+        </div>
+        {% endif %}
+    </nav>
+
+    <button class="btn btn-dark d-md-none position-fixed" style="top:1rem;left:1rem;z-index:1100;" onclick="document.getElementById('sidebar').classList.toggle('open')">
+        <i class="bi bi-list"></i>
+    </button>
+
+    <div class="sf-main">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, msg in messages %}
+                    <div class="sf-flash {% if category == 'danger' %}danger{% endif %}">
+                        <i class="bi {% if category == 'danger' %}bi-exclamation-octagon-fill{% else %}bi-check-circle-fill{% endif %}"></i>
+                        {{ msg }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function toggleDarkMode() {
+            const isDark = document.body.classList.toggle('dark-mode');
+            localStorage.setItem('sf-dark', isDark ? 'true' : 'false');
+            updateDarkButton(isDark);
+        }
+        function updateDarkButton(isDark) {
+            const btnText = document.getElementById('darkModeText');
+            const btnIcon = document.getElementById('darkModeIcon');
+            if (btnText && btnIcon) {
+                if (isDark) {
+                    btnText.textContent = 'Light Mode';
+                    btnIcon.className = 'bi bi-sun';
+                } else {
+                    btnText.textContent = 'Dark Mode';
+                    btnIcon.className = 'bi bi-moon-stars';
+                }
+            }
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            const isDark = localStorage.getItem('sf-dark') === 'true';
+            if (isDark) {
+                document.body.classList.add('dark-mode');
+            }
+            updateDarkButton(isDark);
+        });
+    </script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

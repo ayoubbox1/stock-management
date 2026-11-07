@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+{% block title %}StockFlow – Analytics & Reports{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    .progress-bar-custom {
+        height: 8px;
+        border-radius: 9999px;
+        background-color: var(--sf-border);
+        overflow: hidden;
+    }
+    .progress-bar-fill {
+        height: 100%;
+        border-radius: 9999px;
+        background: linear-gradient(90deg, var(--sf-primary), #818cf8);
+        transition: width 0.4s ease;
+    }
+    .progress-bar-fill.success {
+        background: linear-gradient(90deg, var(--sf-success), #34d399);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="sf-topbar">
+    <h1><i class="bi bi-graph-up me-2" style="color:var(--sf-primary)"></i>Analytics & Reports</h1>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('export_invoices') }}" class="btn-sf outline"><i class="bi bi-download"></i> Export Invoices</a>
+    </div>
+</div>
+
+<!-- Stat Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3 col-6">
+        <div class="sf-card sf-stat-card">
+            <div class="sf-stat-icon green"><i class="bi bi-currency-dollar"></i></div>
+            <div>
+                <div class="sf-stat-value">${{ "%.2f"|format(total_revenue) }}</div>
+                <div class="sf-stat-label">Total Revenue</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="sf-card sf-stat-card">
+            <div class="sf-stat-icon blue"><i class="bi bi-receipt"></i></div>
+            <div>
+                <div class="sf-stat-value">{{ total_invoices }}</div>
+                <div class="sf-stat-label">Total Invoices</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="sf-card sf-stat-card">
+            <div class="sf-stat-icon cyan"><i class="bi bi-people"></i></div>
+            <div>
+                <div class="sf-stat-value">{{ total_customers }}</div>
+                <div class="sf-stat-label">Total Customers</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="sf-card sf-stat-card">
+            <div class="sf-stat-icon amber"><i class="bi bi-calculator"></i></div>
+            <div>
+                <div class="sf-stat-value">${{ "%.2f"|format(avg_invoice) }}</div>
+                <div class="sf-stat-label">Avg Invoice Value</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Monthly Revenue Chart -->
+<div class="sf-card mb-4">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h5 class="mb-0" style="font-weight:600;"><i class="bi bi-bar-chart-line me-2"></i>Monthly Revenue (Last 6 Months)</h5>
+    </div>
+    <div style="position: relative; height: 320px; width: 100%;">
+        <canvas id="revenueChart"></canvas>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Top 5 Products by Quantity Sold -->
+    <div class="col-md-6">
+        <div class="sf-card h-100">
+            <h5 class="mb-3" style="font-weight:600;"><i class="bi bi-trophy me-2 text-warning"></i>Top 5 Products Sold</h5>
+            {% if top_products %}
+            <div class="d-flex flex-column gap-3">
+                {% for item in top_products %}
+                <div>
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <div>
+                            <span style="font-weight:600;">{{ item.product.name }}</span>
+                            <small class="text-muted ms-1">({{ item.product.sku }})</small>
+                        </div>
+                        <span style="font-weight:600; color:var(--sf-primary);">{{ item.quantity_sold }} sold</span>
+                    </div>
+                    <div class="progress-bar-custom">
+                        <div class="progress-bar-fill" style="width: {{ item.percent }}%;"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-4 text-muted">
+                <i class="bi bi-box-seam" style="font-size:2rem;"></i>
+                <p class="mt-2 mb-0">No product sales recorded yet.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Revenue by Customer (Top 5) -->
+    <div class="col-md-6">
+        <div class="sf-card h-100">
+            <h5 class="mb-3" style="font-weight:600;"><i class="bi bi-person-check me-2 text-success"></i>Top 5 Customers by Spend</h5>
+            {% if top_customers %}
+            <div class="d-flex flex-column gap-3">
+                {% for item in top_customers %}
+                <div>
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <div>
+                            <a href="{{ url_for('customer_detail', cid=item.customer.id) }}" style="font-weight:600; text-decoration:none; color:inherit;">
+                                {{ item.customer.name }}
+                            </a>
+                            {% if item.customer.company %}
+                            <small class="text-muted ms-1">({{ item.customer.company }})</small>
+                            {% endif %}
+                        </div>
+                        <span style="font-weight:600; color:var(--sf-success);">${{ "%.2f"|format(item.total_spent) }}</span>
+                    </div>
+                    <div class="progress-bar-custom">
+                        <div class="progress-bar-fill success" style="width: {{ item.percent }}%;"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-4 text-muted">
+                <i class="bi bi-people" style="font-size:2rem;"></i>
+                <p class="mt-2 mb-0">No customer purchases yet.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('revenueChart').getContext('2d');
+    const isDark = document.body.classList.contains('dark-mode');
+    const textColor = isDark ? '#94a3b8' : '#64748b';
+    const gridColor = isDark ? '#334155' : '#f1f5f9';
+
+    const labels = {{ month_labels|tojson }};
+    const data = {{ month_data|tojson }};
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Revenue ($)',
+                data: data,
+                backgroundColor: 'rgba(79, 70, 229, 0.85)',
+                borderColor: '#4f46e5',
+                borderWidth: 1.5,
+                borderRadius: 8,
+                maxBarThickness: 45
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return '$' + context.parsed.y.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        color: textColor,
+                        font: { family: 'Inter' }
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: gridColor
+                    },
+                    ticks: {
+                        color: textColor,
+                        font: { family: 'Inter' },
+                        callback: function(value) {
+                            return '$' + value;
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

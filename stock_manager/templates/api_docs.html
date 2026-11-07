@@ -1,0 +1,323 @@
+{% extends "base.html" %}
+{% block title %}StockFlow – REST API Documentation{% endblock %}
+
+{% block content %}
+<div class="sf-topbar">
+    <div>
+        <h1><i class="bi bi-braces me-2" style="color:var(--sf-primary)"></i>REST API Documentation (v1)</h1>
+        <p class="text-muted mb-0" style="font-size:.85rem;">Standardized JSON API endpoints for programmatic inventory, invoicing, CRM, and stock management.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('scanner') }}" class="btn-sf outline"><i class="bi bi-camera"></i> Barcode Scanner</a>
+    </div>
+</div>
+
+<!-- API Auth Banner -->
+<div class="sf-card mb-4" style="border-left: 4px solid var(--sf-primary);">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div>
+            <h5 class="fw-semibold mb-1"><i class="bi bi-key-fill me-2" style="color:var(--sf-primary)"></i>Authentication & Headers</h5>
+            <p class="text-muted mb-2" style="font-size:.84rem;">
+                All API endpoints require the <code>X-API-Key</code> HTTP request header. Set via environment variable <code>API_KEY</code>.
+            </p>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <span style="font-size:.82rem; font-weight:600;">Current API Key:</span>
+                <code style="background:#f1f5f9; padding:4px 10px; border-radius:6px; font-size:.85rem; color:#4f46e5;">{{ api_key }}</code>
+                <span class="badge bg-success" style="font-size:.7rem;">Active</span>
+            </div>
+        </div>
+        <div style="background:rgba(79,70,229,0.08); padding:10px 16px; border-radius:8px; font-family:monospace; font-size:.8rem;">
+            curl -H "X-API-Key: {{ api_key }}" http://localhost:5000/api/v1/products
+        </div>
+    </div>
+</div>
+
+<style>
+.api-badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 6px; text-transform: uppercase; letter-spacing: 0.05em; min-width: 65px; text-align: center; }
+.api-badge.get    { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+.api-badge.post   { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
+.api-badge.put    { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+.api-badge.delete { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+.api-endpoint-card { background: var(--sf-card); border: 1px solid var(--sf-border); border-radius: 10px; padding: 1.25rem; margin-bottom: 1.25rem; }
+.api-path { font-family: monospace; font-size: .95rem; font-weight: 600; }
+pre.json-box { background: #0f172a; color: #38bdf8; padding: 12px 16px; border-radius: 8px; font-size: .8rem; margin: 8px 0 0; overflow-x: auto; max-height: 220px; }
+</style>
+
+<!-- PRODUCTS SECTION -->
+<div class="mb-4">
+    <h4 class="fw-semibold mb-3"><i class="bi bi-box-seam me-2" style="color:var(--sf-primary)"></i>1. Products API</h4>
+
+    <!-- GET /api/v1/products -->
+    <div class="api-endpoint-card">
+        <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <span class="api-badge get">GET</span>
+                <span class="api-path">/api/v1/products</span>
+            </div>
+            <span class="text-muted" style="font-size:.8rem;">Filter: <code>?sku=&lt;value&gt;</code></span>
+        </div>
+        <p class="text-muted mb-2" style="font-size:.85rem;">List all products with categories, suppliers, and tags. Optionally filter by exact or partial SKU.</p>
+        <div class="row g-2">
+            <div class="col-md-12">
+                <div style="font-size:.75rem; text-transform:uppercase; color:var(--sf-muted); font-weight:600;">Example Response (200 OK):</div>
+                <pre class="json-box">[
+  {
+    "id": 1,
+    "name": "Mechanical Keyboard",
+    "sku": "KB-100",
+    "quantity": 25,
+    "price": 89.99,
+    "category_name": "Electronics",
+    "supplier_name": "Tech Corp",
+    "tags": ["Bestseller", "New"]
+  }
+]</pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- GET /api/v1/products/<id> -->
+    <div class="api-endpoint-card">
+        <div class="d-flex align-items-center gap-2 mb-2">
+            <span class="api-badge get">GET</span>
+            <span class="api-path">/api/v1/products/&lt;id&gt;</span>
+        </div>
+        <p class="text-muted mb-2" style="font-size:.85rem;">Retrieve single product details by integer ID.</p>
+        <pre class="json-box">{
+  "id": 1,
+  "name": "Mechanical Keyboard",
+  "sku": "KB-100",
+  "quantity": 25,
+  "price": 89.99,
+  "category_name": "Electronics",
+  "supplier_name": "Tech Corp",
+  "tags": ["Bestseller"]
+}</pre>
+    </div>
+
+    <!-- POST /api/v1/products -->
+    <div class="api-endpoint-card">
+        <div class="d-flex align-items-center gap-2 mb-2">
+            <span class="api-badge post">POST</span>
+            <span class="api-path">/api/v1/products</span>
+        </div>
+        <p class="text-muted mb-2" style="font-size:.85rem;">Create a new product. Stock is allocated to the default warehouse.</p>
+        <div class="row g-2">
+            <div class="col-md-6">
+                <div style="font-size:.75rem; text-transform:uppercase; color:var(--sf-muted); font-weight:600;">Request Body (JSON):</div>
+                <pre class="json-box">{
+  "name": "Wireless Mouse",
+  "sku": "MS-200",
+  "quantity": 50,
+  "price": 29.99,
+  "category_id": 1,
+  "supplier_id": 1
+}</pre>
+            </div>
+            <div class="col-md-6">
+                <div style="font-size:.75rem; text-transform:uppercase; color:var(--sf-muted); font-weight:600;">Response (201 Created):</div>
+                <pre class="json-box">{
+  "id": 2,
+  "name": "Wireless Mouse",
+  "sku": "MS-200",
+  "quantity": 50,
+  "price": 29.99,
+  "category_name": "Electronics",
+  "supplier_name": "Tech Corp",
+  "tags": []
+}</pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- PUT /api/v1/products/<id> -->
+    <div class="api-endpoint-card">
+        <div class="d-flex align-items-center gap-2 mb-2">
+            <span class="api-badge put">PUT</span>
+            <span class="api-path">/api/v1/products/&lt;id&gt;</span>
+        </div>
+        <p class="text-muted mb-2" style="font-size:.85rem;">Update product attributes (name, sku, price, category_id, supplier_id, quantity).</p>
+        <pre class="json-box">// Body: { "price": 27.99, "name": "Wireless Ergonomic Mouse" }
+// Response 200 OK: Updated product object</pre>
+    </div>
+
+    <!-- DELETE /api/v1/products/<id> -->
+    <div class="api-endpoint-card">
+        <div class="d-flex align-items-center gap-2 mb-2">
+            <span class="api-badge delete">DELETE</span>
+            <span class="api-path">/api/v1/products/&lt;id&gt;</span>
+        </div>
+        <p class="text-muted mb-2" style="font-size:.85rem;">Permanently remove a product record and clean up associated image uploads.</p>
+        <pre class="json-box">{ "message": "Product deleted", "id": 2 }</pre>
+    </div>
+</div>
+
+<!-- CUSTOMERS SECTION -->
+<div class="mb-4">
+    <h4 class="fw-semibold mb-3"><i class="bi bi-people me-2" style="color:var(--sf-success)"></i>2. Customers API (CRM)</h4>
+
+    <!-- GET /api/v1/customers -->
+    <div class="api-endpoint-card">
+        <div class="d-flex align-items-center gap-2 mb-2">
+            <span class="api-badge get">GET</span>
+            <span class="api-path">/api/v1/customers</span>
+        </div>
+        <p class="text-muted mb-2" style="font-size:.85rem;">List all customers with contact details and lifetime spent total.</p>
+        <pre class="json-box">[
+  {
+    "id": 1,
+    "name": "Alice Johnson",
+    "email": "alice@acme.com",
+    "company": "Acme Corp",
+    "status": "active",
+    "total_spent": 1250.00
+  }
+]</pre>
+    </div>
+
+    <!-- GET /api/v1/customers/<id> -->
+    <div class="api-endpoint-card">
+        <div class="d-flex align-items-center gap-2 mb-2">
+            <span class="api-badge get">GET</span>
+            <span class="api-path">/api/v1/customers/&lt;id&gt;</span>
+        </div>
+        <p class="text-muted mb-2" style="font-size:.85rem;">Get customer profile along with their invoice transaction history.</p>
+        <pre class="json-box">{
+  "id": 1,
+  "name": "Alice Johnson",
+  "email": "alice@acme.com",
+  "company": "Acme Corp",
+  "status": "active",
+  "total_spent": 1250.00,
+  "invoices": [
+    { "id": 1, "total_amount": 1250.00, "date": "2026-11-06", "currency": "USD" }
+  ]
+}</pre>
+    </div>
+
+    <!-- POST /api/v1/customers -->
+    <div class="api-endpoint-card">
+        <div class="d-flex align-items-center gap-2 mb-2">
+            <span class="api-badge post">POST</span>
+            <span class="api-path">/api/v1/customers</span>
+        </div>
+        <p class="text-muted mb-2" style="font-size:.85rem;">Create customer. Sends welcome email if email is provided.</p>
+        <pre class="json-box">// Body: { "name": "Bob Smith", "email": "bob@example.com", "company": "Beta LLC", "status": "lead" }
+// Response 201 Created</pre>
+    </div>
+
+    <!-- PUT /api/v1/customers/<id> -->
+    <div class="api-endpoint-card">
+        <div class="d-flex align-items-center gap-2 mb-2">
+            <span class="api-badge put">PUT</span>
+            <span class="api-path">/api/v1/customers/&lt;id&gt;</span>
+        </div>
+        <p class="text-muted mb-2" style="font-size:.85rem;">Update customer contact and status attributes.</p>
+        <pre class="json-box">{ "message": "Customer updated", "id": 2 }</pre>
+    </div>
+</div>
+
+<!-- INVOICES SECTION -->
+<div class="mb-4">
+    <h4 class="fw-semibold mb-3"><i class="bi bi-receipt me-2" style="color:var(--sf-warning)"></i>3. Invoices API</h4>
+
+    <!-- GET /api/v1/invoices -->
+    <div class="api-endpoint-card">
+        <div class="d-flex align-items-center gap-2 mb-2">
+            <span class="api-badge get">GET</span>
+            <span class="api-path">/api/v1/invoices</span>
+        </div>
+        <p class="text-muted mb-2" style="font-size:.85rem;">List all invoices with client, total, currency, and discounts.</p>
+        <pre class="json-box">[
+  {
+    "id": 1,
+    "client_name": "Alice Johnson",
+    "date": "2026-11-06T14:30:00",
+    "total": 1250.00,
+    "currency": "USD",
+    "discount_pct": 5.0
+  }
+]</pre>
+    </div>
+
+    <!-- GET /api/v1/invoices/<id> -->
+    <div class="api-endpoint-card">
+        <div class="d-flex align-items-center gap-2 mb-2">
+            <span class="api-badge get">GET</span>
+            <span class="api-path">/api/v1/invoices/&lt;id&gt;</span>
+        </div>
+        <p class="text-muted mb-2" style="font-size:.85rem;">Retrieve detailed invoice with line items.</p>
+        <pre class="json-box">{
+  "id": 1,
+  "client_name": "Alice Johnson",
+  "customer_id": 1,
+  "date": "2026-11-06T14:30:00",
+  "subtotal": 1315.79,
+  "discount_pct": 5.0,
+  "total": 1250.00,
+  "currency": "USD",
+  "currency_symbol": "$",
+  "items": [
+    {
+      "product_id": 1,
+      "product_name": "Mechanical Keyboard",
+      "quantity": 10,
+      "unit_price": 89.99,
+      "total_price": 899.90
+    }
+  ]
+}</pre>
+    </div>
+</div>
+
+<!-- STOCK SECTION -->
+<div class="mb-4">
+    <h4 class="fw-semibold mb-3"><i class="bi bi-layers me-2" style="color:var(--sf-info)"></i>4. Stock & Inventory Management API</h4>
+
+    <!-- GET /api/v1/stock/low -->
+    <div class="api-endpoint-card">
+        <div class="d-flex align-items-center gap-2 mb-2">
+            <span class="api-badge get">GET</span>
+            <span class="api-path">/api/v1/stock/low</span>
+        </div>
+        <p class="text-muted mb-2" style="font-size:.85rem;">Fetch all items with total quantity &le; 10 across warehouses.</p>
+        <pre class="json-box">[
+  {
+    "id": 3,
+    "name": "USB-C Cable",
+    "sku": "CAB-01",
+    "quantity": 3,
+    "price": 9.99,
+    "status": "critical"
+  }
+]</pre>
+    </div>
+
+    <!-- POST /api/v1/stock/adjust -->
+    <div class="api-endpoint-card">
+        <div class="d-flex align-items-center gap-2 mb-2">
+            <span class="api-badge post">POST</span>
+            <span class="api-path">/api/v1/stock/adjust</span>
+        </div>
+        <p class="text-muted mb-2" style="font-size:.85rem;">Increment or decrement stock for a product in the primary warehouse.</p>
+        <div class="row g-2">
+            <div class="col-md-6">
+                <div style="font-size:.75rem; text-transform:uppercase; color:var(--sf-muted); font-weight:600;">Request Body (JSON):</div>
+                <pre class="json-box">{
+  "product_id": 1,
+  "adjustment": 10
+}</pre>
+            </div>
+            <div class="col-md-6">
+                <div style="font-size:.75rem; text-transform:uppercase; color:var(--sf-muted); font-weight:600;">Response (200 OK):</div>
+                <pre class="json-box">{
+  "message": "Stock adjusted successfully",
+  "product_id": 1,
+  "adjustment": 10,
+  "new_quantity": 35
+}</pre>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

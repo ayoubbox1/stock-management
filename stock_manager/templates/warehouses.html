@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}StockFlow – Warehouses{% endblock %}
+
+{% block content %}
+<div class="sf-topbar">
+    <div>
+        <h1><i class="bi bi-buildings me-2" style="color:var(--sf-primary)"></i>Warehouses & Storage Facilities</h1>
+        <p class="text-muted mb-0" style="font-size:.85rem;">Manage multi-location inventory storage, track SKU distribution, and transfer stock.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('warehouse_transfers') }}" class="btn-sf outline"><i class="bi bi-arrow-left-right"></i> Transfer History</a>
+        <a href="{{ url_for('warehouse_transfer_create') }}" class="btn-sf outline"><i class="bi bi-shuffle"></i> Transfer Stock</a>
+        <a href="{{ url_for('warehouse_create') }}" class="btn-sf primary"><i class="bi bi-plus-lg"></i> Add Warehouse</a>
+    </div>
+</div>
+
+<!-- Warehouses Cards/Table -->
+<div class="row g-4 mb-4">
+    {% for wh in warehouses %}
+    <div class="col-lg-4 col-md-6">
+        <div class="sf-card h-100 d-flex flex-column" style="position:relative; {% if wh.is_default %}border-top:4px solid var(--sf-primary);{% endif %}">
+            <div class="d-flex align-items-start justify-content-between mb-3">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="sf-stat-icon blue" style="width:40px; height:40px; font-size:1.1rem;">
+                        <i class="bi bi-building"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-0">
+                            <a href="{{ url_for('warehouse_detail', wid=wh.id) }}" class="text-decoration-none" style="color:inherit;">
+                                {{ wh.name }}
+                            </a>
+                        </h5>
+                        <div class="text-muted" style="font-size:.8rem;">
+                            <i class="bi bi-geo-alt"></i> {{ wh.location or 'No address specified' }}
+                        </div>
+                    </div>
+                </div>
+                {% if wh.is_default %}
+                <span class="badge bg-primary rounded-pill px-3 py-1" style="font-size:.72rem;">Default</span>
+                {% endif %}
+            </div>
+
+            {% if wh.notes %}
+            <p class="text-muted mb-3" style="font-size:.82rem; line-height:1.5; flex:1;">
+                {{ wh.notes }}
+            </p>
+            {% else %}
+            <div class="flex-1 mb-3"></div>
+            {% endif %}
+
+            <div class="row g-2 text-center mb-3">
+                <div class="col-6">
+                    <div style="background:rgba(0,0,0,0.02); border:1px solid var(--sf-border); border-radius:8px; padding:8px;">
+                        <div class="text-muted" style="font-size:.72rem; text-transform:uppercase;">Stocked SKUs</div>
+                        <div class="fw-bold" style="font-size:1.25rem;">{{ wh.total_skus }}</div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div style="background:rgba(0,0,0,0.02); border:1px solid var(--sf-border); border-radius:8px; padding:8px;">
+                        <div class="text-muted" style="font-size:.72rem; text-transform:uppercase;">Total Units</div>
+                        <div class="fw-bold text-primary" style="font-size:1.25rem;">{{ wh.total_units }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex align-items-center justify-content-between pt-2 border-top gap-2">
+                <a href="{{ url_for('warehouse_stock_manage', wid=wh.id) }}" class="btn-sf outline btn-sm flex-fill justify-content-center">
+                    <i class="bi bi-sliders"></i> Levels
+                </a>
+                <a href="{{ url_for('warehouse_detail', wid=wh.id) }}" class="btn-sf primary btn-sm flex-fill justify-content-center">
+                    <i class="bi bi-box-seam"></i> Details
+                </a>
+                <a href="{{ url_for('warehouse_edit', wid=wh.id) }}" class="btn-sf outline btn-sm" title="Edit">
+                    <i class="bi bi-pencil"></i>
+                </a>
+                {% if not wh.is_default and wh.total_units == 0 %}
+                <form action="{{ url_for('warehouse_delete', wid=wh.id) }}" method="POST" onsubmit="return confirm('Delete warehouse {{ wh.name }}?')" style="margin:0;">
+                    <button type="submit" class="btn-sf danger btn-sm" title="Delete">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Summary statistics banner -->
+<div class="sf-card">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="avatar blue" style="width:48px; height:48px; font-size:1.3rem;">
+                <i class="bi bi-diagram-3"></i>
+            </div>
+            <div>
+                <h6 class="fw-bold mb-0">Multi-Warehouse Inventory Architecture</h6>
+                <p class="text-muted mb-0" style="font-size:.82rem;">
+                    Total warehouses: <strong>{{ warehouses|length }}</strong> &bull;
+                    Products automatically aggregate quantity across all active warehouses.
+                </p>
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('warehouse_transfer_create') }}" class="btn-sf primary btn-sm">
+                <i class="bi bi-shuffle"></i> Inter-Warehouse Transfer
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

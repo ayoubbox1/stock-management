@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+{% block title %}StockFlow – Low Stock Alerts{% endblock %}
+
+{% block content %}
+<div class="sf-topbar">
+    <div>
+        <h1><i class="bi bi-bell me-2" style="color:var(--sf-danger)"></i>Low-Stock Alerts</h1>
+        <p class="text-muted mb-0" style="font-size:.85rem;">Products requiring reordering or stock replenishment (≤10 units).</p>
+    </div>
+    <div class="d-flex gap-2">
+        <form action="{{ url_for('alerts_send_digest') }}" method="POST" style="margin:0;">
+            <button type="submit" class="btn-sf outline" style="color:var(--sf-danger); border-color:#fca5a5;">
+                <i class="bi bi-envelope-exclamation"></i> Send Low-Stock Digest
+            </button>
+        </form>
+        <a href="{{ url_for('product_create') }}" class="btn-sf primary"><i class="bi bi-plus-lg"></i> Add Product</a>
+    </div>
+</div>
+
+<!-- Alert Overview Summary -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="sf-card sf-stat-card" style="border-left: 4px solid var(--sf-danger);">
+            <div class="sf-stat-icon red"><i class="bi bi-x-circle"></i></div>
+            <div>
+                <div class="sf-stat-value text-danger">{{ out_of_stock|length }}</div>
+                <div class="sf-stat-label">Out of Stock (0 units)</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="sf-card sf-stat-card" style="border-left: 4px solid var(--sf-warning);">
+            <div class="sf-stat-icon amber"><i class="bi bi-exclamation-triangle"></i></div>
+            <div>
+                <div class="sf-stat-value text-warning">{{ critical|length }}</div>
+                <div class="sf-stat-label">Critical Stock (1–5 units)</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="sf-card sf-stat-card" style="border-left: 4px solid var(--sf-info);">
+            <div class="sf-stat-icon cyan"><i class="bi bi-info-circle"></i></div>
+            <div>
+                <div class="sf-stat-value text-info">{{ low|length }}</div>
+                <div class="sf-stat-label">Low Stock (6–10 units)</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if total_alerts == 0 %}
+<div class="sf-card text-center py-5">
+    <div class="text-success mb-2" style="font-size:3rem;"><i class="bi bi-check-circle-fill"></i></div>
+    <h5 class="fw-semibold">All inventory levels are healthy!</h5>
+    <p class="text-muted mb-3">No products are currently out of stock or below the low stock threshold of 10 units.</p>
+    <a href="{{ url_for('index') }}" class="btn-sf outline">Back to Inventory</a>
+</div>
+{% else %}
+
+<!-- 1. Out of Stock -->
+<div class="sf-card mb-4">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h5 class="mb-0 text-danger fw-semibold">
+            <i class="bi bi-x-circle-fill me-2"></i>Out of Stock (0 units)
+        </h5>
+        <span class="badge bg-danger text-white rounded-pill px-3">{{ out_of_stock|length }} items</span>
+    </div>
+    {% if out_of_stock %}
+    <div class="table-responsive">
+        <table class="sf-table">
+            <thead>
+                <tr>
+                    <th style="width:50px"></th>
+                    <th>Product</th>
+                    <th>SKU</th>
+                    <th>Category</th>
+                    <th>Current Stock</th>
+                    <th style="text-align:right;">Adjust Stock</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in out_of_stock %}
+                <tr>
+                    <td>
+                        {% if p.image_url %}
+                            <img src="{{ p.image_url }}" class="product-thumb" alt="{{ p.name }}">
+                        {% else %}
+                            <div class="product-thumb-placeholder"><i class="bi bi-image"></i></div>
+                        {% endif %}
+                    </td>
+                    <td style="font-weight:600;">{{ p.name }}</td>
+                    <td><code>{{ p.sku }}</code></td>
+                    <td>
+                        {% if p.category %}
+                            <span class="badge" style="background-color:{{ p.category.color }}; color:#fff; font-size:.75rem;">
+                                {{ p.category.name }}
+                            </span>
+                        {% else %}
+                            <span style="color:var(--sf-muted); font-size:.8rem;">—</span>
+                        {% endif %}
+                    </td>
+                    <td><span class="badge-stock out">0 (Out of stock)</span></td>
+                    <td style="text-align:right;">
+                        <form action="{{ url_for('product_adjust_stock', pid=p.id) }}" method="POST" class="d-inline-flex align-items-center gap-1 justify-content-end">
+                            <input type="number" name="adjustment" value="10" min="1" class="form-control form-control-sm text-center" style="width:75px; border-radius:6px;" title="Units to add">
+                            <button type="submit" class="btn-sf primary btn-sm" title="Add units to stock"><i class="bi bi-plus-lg"></i> Restock</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-muted mb-0 py-2" style="font-size:.9rem;"><i class="bi bi-check2 text-success me-1"></i> No products are completely out of stock.</p>
+    {% endif %}
+</div>
+
+<!-- 2. Critical Stock -->
+<div class="sf-card mb-4">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h5 class="mb-0 text-warning fw-semibold">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>Critical Stock (1–5 units)
+        </h5>
+        <span class="badge bg-warning text-dark rounded-pill px-3">{{ critical|length }} items</span>
+    </div>
+    {% if critical %}
+    <div class="table-responsive">
+        <table class="sf-table">
+            <thead>
+                <tr>
+                    <th style="width:50px"></th>
+                    <th>Product</th>
+                    <th>SKU</th>
+                    <th>Category</th>
+                    <th>Current Stock</th>
+                    <th style="text-align:right;">Adjust Stock</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in critical %}
+                <tr>
+                    <td>
+                        {% if p.image_url %}
+                            <img src="{{ p.image_url }}" class="product-thumb" alt="{{ p.name }}">
+                        {% else %}
+                            <div class="product-thumb-placeholder"><i class="bi bi-image"></i></div>
+                        {% endif %}
+                    </td>
+                    <td style="font-weight:600;">{{ p.name }}</td>
+                    <td><code>{{ p.sku }}</code></td>
+                    <td>
+                        {% if p.category %}
+                            <span class="badge" style="background-color:{{ p.category.color }}; color:#fff; font-size:.75rem;">
+                                {{ p.category.name }}
+                            </span>
+                        {% else %}
+                            <span style="color:var(--sf-muted); font-size:.8rem;">—</span>
+                        {% endif %}
+                    </td>
+                    <td><span class="badge-stock low">{{ p.quantity }} left</span></td>
+                    <td style="text-align:right;">
+                        <form action="{{ url_for('product_adjust_stock', pid=p.id) }}" method="POST" class="d-inline-flex align-items-center gap-1 justify-content-end">
+                            <input type="number" name="adjustment" value="10" min="1" class="form-control form-control-sm text-center" style="width:75px; border-radius:6px;" title="Units to add">
+                            <button type="submit" class="btn-sf primary btn-sm" title="Add units to stock"><i class="bi bi-plus-lg"></i> Add Stock</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-muted mb-0 py-2" style="font-size:.9rem;"><i class="bi bi-check2 text-success me-1"></i> No products in critical stock level.</p>
+    {% endif %}
+</div>
+
+<!-- 3. Low Stock -->
+<div class="sf-card">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h5 class="mb-0 text-info fw-semibold">
+            <i class="bi bi-info-circle-fill me-2"></i>Low Stock (6–10 units)
+        </h5>
+        <span class="badge bg-info text-dark rounded-pill px-3">{{ low|length }} items</span>
+    </div>
+    {% if low %}
+    <div class="table-responsive">
+        <table class="sf-table">
+            <thead>
+                <tr>
+                    <th style="width:50px"></th>
+                    <th>Product</th>
+                    <th>SKU</th>
+                    <th>Category</th>
+                    <th>Current Stock</th>
+                    <th style="text-align:right;">Adjust Stock</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in low %}
+                <tr>
+                    <td>
+                        {% if p.image_url %}
+                            <img src="{{ p.image_url }}" class="product-thumb" alt="{{ p.name }}">
+                        {% else %}
+                            <div class="product-thumb-placeholder"><i class="bi bi-image"></i></div>
+                        {% endif %}
+                    </td>
+                    <td style="font-weight:600;">{{ p.name }}</td>
+                    <td><code>{{ p.sku }}</code></td>
+                    <td>
+                        {% if p.category %}
+                            <span class="badge" style="background-color:{{ p.category.color }}; color:#fff; font-size:.75rem;">
+                                {{ p.category.name }}
+                            </span>
+                        {% else %}
+                            <span style="color:var(--sf-muted); font-size:.8rem;">—</span>
+                        {% endif %}
+                    </td>
+                    <td><span class="badge-stock ok" style="background:#e0f2fe; color:#0369a1;">{{ p.quantity }} units</span></td>
+                    <td style="text-align:right;">
+                        <form action="{{ url_for('product_adjust_stock', pid=p.id) }}" method="POST" class="d-inline-flex align-items-center gap-1 justify-content-end">
+                            <input type="number" name="adjustment" value="10" min="1" class="form-control form-control-sm text-center" style="width:75px; border-radius:6px;" title="Units to add">
+                            <button type="submit" class="btn-sf primary btn-sm" title="Add units to stock"><i class="bi bi-plus-lg"></i> Add Stock</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-muted mb-0 py-2" style="font-size:.9rem;"><i class="bi bi-check2 text-success me-1"></i> No products in low stock level.</p>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}StockFlow – Product Tags{% endblock %}
+
+{% block content %}
+<div class="sf-topbar">
+    <h1><i class="bi bi-tags me-2" style="color:var(--sf-primary)"></i>Product Tags</h1>
+    <a href="{{ url_for('tag_create') }}" class="btn-sf primary"><i class="bi bi-plus-lg"></i> Add Tag</a>
+</div>
+
+<div class="sf-card" style="max-width:850px;">
+    {% if tags %}
+    <div class="table-responsive">
+        <table class="sf-table">
+            <thead>
+                <tr>
+                    <th style="width:40px;"></th>
+                    <th>Tag Name</th>
+                    <th>Color</th>
+                    <th>Products Tagged</th>
+                    <th style="text-align:right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tag in tags %}
+                <tr>
+                    <td>
+                        <span style="display:inline-block; width:18px; height:18px; border-radius:50%; background-color:{{ tag.color }};"></span>
+                    </td>
+                    <td>
+                        <span class="badge" style="background-color:{{ tag.color }}; color:#fff; font-size:.82rem; padding:.35em .75em;">
+                            {{ tag.name }}
+                        </span>
+                    </td>
+                    <td><code>{{ tag.color }}</code></td>
+                    <td>
+                        <a href="{{ url_for('index', tag=tag.id) }}" style="color:var(--sf-primary); text-decoration:none; font-weight:600;">
+                            {{ tag.products.count() }} product{{ 's' if tag.products.count() != 1 else '' }}
+                        </a>
+                    </td>
+                    <td style="text-align:right;">
+                        <a href="{{ url_for('tag_edit', tid=tag.id) }}" class="btn-sf outline btn-sm"><i class="bi bi-pencil"></i> Edit</a>
+                        <form action="{{ url_for('tag_delete', tid=tag.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Delete tag #{{ tag.name }}?')">
+                            <button type="submit" class="btn-sf danger btn-sm"><i class="bi bi-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+        <i class="bi bi-tags" style="font-size:2.5rem;"></i>
+        <h5 class="mt-2 mb-1">No tags yet</h5>
+        <p class="mb-0">Create tags like "Featured", "Sale", "New Arrival" to organize and filter your products.</p>
+        <a href="{{ url_for('tag_create') }}" class="btn-sf primary btn-sm mt-3"><i class="bi bi-plus-lg"></i> Create First Tag</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

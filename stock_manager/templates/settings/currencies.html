@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}StockFlow – Currencies Settings{% endblock %}
+
+{% block content %}
+<div class="sf-topbar">
+    <h1><i class="bi bi-currency-exchange me-2" style="color:var(--sf-primary)"></i>Currency Settings</h1>
+    <button type="button" class="btn-sf primary" data-bs-toggle="modal" data-bs-target="#newCurrencyModal">
+        <i class="bi bi-plus-lg"></i> Add Currency
+    </button>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="sf-card">
+            <h5 class="fw-semibold mb-3">Configured Currencies</h5>
+            <div class="table-responsive">
+                <table class="sf-table">
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Symbol</th>
+                            <th>Currency Name</th>
+                            <th>Exchange Rate (vs USD)</th>
+                            <th style="text-align:right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in currencies %}
+                        <tr>
+                            <td class="fw-bold">
+                                <code>{{ c.code }}</code>
+                                {% if c.code == 'USD' %}
+                                    <span class="badge bg-primary ms-1" style="font-size:.65rem;">Base</span>
+                                {% endif %}
+                            </td>
+                            <td class="fs-5">{{ c.symbol }}</td>
+                            <td>{{ c.name }}</td>
+                            <td>
+                                <strong>{{ c.exchange_rate }}</strong>
+                                <small class="text-muted ms-1">(1 USD = {{ c.exchange_rate }} {{ c.code }})</small>
+                            </td>
+                            <td style="text-align:right;">
+                                <button type="button" class="btn-sf outline btn-sm" data-bs-toggle="modal" data-bs-target="#editModal{{ c.id }}">
+                                    <i class="bi bi-pencil"></i> Edit
+                                </button>
+                                {% if c.code != 'USD' %}
+                                <form action="{{ url_for('currency_delete', cid=c.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Delete currency {{ c.code }}?')">
+                                    <button type="submit" class="btn-sf danger btn-sm"><i class="bi bi-trash"></i></button>
+                                </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+
+                        <!-- Edit Currency Modal -->
+                        <div class="modal fade" id="editModal{{ c.id }}" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered">
+                                <div class="modal-content" style="background:var(--sf-card); border:1px solid var(--sf-border); border-radius:14px;">
+                                    <form action="{{ url_for('currency_edit', cid=c.id) }}" method="POST">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title fw-bold">Edit Currency: {{ c.code }}</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body p-4">
+                                            <div class="mb-3">
+                                                <label class="form-label fw-semibold">Currency Code</label>
+                                                <input type="text" class="form-control" value="{{ c.code }}" disabled style="border-radius:8px;">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label fw-semibold">Symbol</label>
+                                                <input type="text" name="symbol" class="form-control" value="{{ c.symbol }}" required style="border-radius:8px;">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label fw-semibold">Currency Name</label>
+                                                <input type="text" name="name" class="form-control" value="{{ c.name }}" required style="border-radius:8px;">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label fw-semibold">Exchange Rate (relative to 1 USD)</label>
+                                                <input type="number" step="0.0001" name="exchange_rate" class="form-control" value="{{ c.exchange_rate }}" required style="border-radius:8px;" {% if c.code == 'USD' %}readonly{% endif %}>
+                                                <small class="text-muted">USD is base currency (1.0). For EUR, e.g. 0.92.</small>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn-sf outline" data-bs-dismiss="modal">Cancel</button>
+                                            <button type="submit" class="btn-sf primary">Save Changes</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="sf-card">
+            <h5 class="fw-semibold mb-2"><i class="bi bi-info-circle me-1 text-primary"></i> Multi-Currency Info</h5>
+            <p class="small text-muted mb-3">
+                Currencies configured here will be available when generating invoices.
+                Amounts and totals on invoices will automatically use the selected currency's symbol.
+            </p>
+            <div class="p-3 rounded" style="background:var(--sf-bg); border:1px solid var(--sf-border); font-size:.85rem;">
+                <div class="fw-semibold mb-1">Exchange Rates:</div>
+                <div class="text-muted">Rates are expressed relative to US Dollar (USD = 1.000). You can update them at any time to reflect current exchange rates.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Currency Modal -->
+<div class="modal fade" id="newCurrencyModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background:var(--sf-card); border:1px solid var(--sf-border); border-radius:14px;">
+            <form action="{{ url_for('currency_create') }}" method="POST">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-plus-circle me-2 text-primary"></i>Add Currency</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Currency Code *</label>
+                        <input type="text" name="code" class="form-control" placeholder="e.g. CAD, JPY" required style="border-radius:8px;">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Symbol *</label>
+                        <input type="text" name="symbol" class="form-control" placeholder="e.g. $, ¥, €" required style="border-radius:8px;">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Currency Name *</label>
+                        <input type="text" name="name" class="form-control" placeholder="e.g. Canadian Dollar" required style="border-radius:8px;">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Exchange Rate (vs USD) *</label>
+                        <input type="number" step="0.0001" name="exchange_rate" value="1.0" class="form-control" required style="border-radius:8px;">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-sf outline" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn-sf primary">Add Currency</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

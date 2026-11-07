@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}StockFlow – Categories{% endblock %}
+
+{% block content %}
+<div class="sf-topbar">
+    <h1><i class="bi bi-tags me-2" style="color:var(--sf-primary)"></i>Product Categories</h1>
+    <a href="{{ url_for('category_create') }}" class="btn-sf primary"><i class="bi bi-plus-lg"></i> Add Category</a>
+</div>
+
+<div class="sf-card">
+    {% if categories %}
+    <div class="table-responsive">
+        <table class="sf-table">
+            <thead>
+                <tr>
+                    <th style="width:60px;">Badge</th>
+                    <th>Category Name</th>
+                    <th>Color</th>
+                    <th>Icon</th>
+                    <th>Products Count</th>
+                    <th style="text-align:right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in categories %}
+                <tr>
+                    <td>
+                        <span class="badge" style="background-color:{{ c.color }}; color:#fff; font-size:.85rem; padding:.4em .7em; border-radius:6px;">
+                            <i class="bi {{ c.icon }}"></i>
+                        </span>
+                    </td>
+                    <td style="font-weight:600;">{{ c.name }}</td>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <span style="display:inline-block; width:18px; height:18px; border-radius:4px; background:{{ c.color }}; border:1px solid rgba(0,0,0,.1);"></span>
+                            <code>{{ c.color }}</code>
+                        </div>
+                    </td>
+                    <td><code><i class="bi {{ c.icon }} me-1"></i>{{ c.icon }}</code></td>
+                    <td><span class="badge rounded-pill bg-light text-dark border">{{ c.products|length }}</span></td>
+                    <td style="text-align:right;">
+                        <a href="{{ url_for('category_edit', cid=c.id) }}" class="btn-sf outline btn-sm" title="Edit"><i class="bi bi-pencil"></i></a>
+                        <form action="{{ url_for('category_delete', cid=c.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Delete category {{ c.name }}? Products in this category will become uncategorized.')">
+                            <button type="submit" class="btn-sf danger btn-sm" title="Delete"><i class="bi bi-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+        <i class="bi bi-tags" style="font-size:2.5rem;"></i>
+        <p class="mt-2 mb-0">No categories found. <a href="{{ url_for('category_create') }}">Create your first category</a>.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

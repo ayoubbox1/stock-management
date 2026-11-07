@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}StockFlow – New Purchase Order{% endblock %}
+
+{% block content %}
+<div class="sf-topbar">
+    <h1><i class="bi bi-cart-plus me-2" style="color:var(--sf-primary)"></i>Create Purchase Order</h1>
+    <a href="{{ url_for('purchase_order_list') }}" class="btn-sf outline"><i class="bi bi-arrow-left"></i> Back</a>
+</div>
+
+<div class="sf-card" style="max-width:780px;">
+    <form method="POST" id="poForm">
+        <div class="row g-3 mb-4">
+            <div class="col-md-7">
+                <label class="form-label fw-semibold">Supplier *</label>
+                <select name="supplier_id" class="form-select" style="border-radius:8px;" required>
+                    <option value="">— Select Supplier —</option>
+                    {% for s in suppliers %}
+                    <option value="{{ s.id }}" {% if preselected_sup == s.id %}selected{% endif %}>
+                        {{ s.name }}{% if s.email %} ({{ s.email }}){% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-5">
+                <label class="form-label fw-semibold">Initial Status</label>
+                <select name="status" class="form-select" style="border-radius:8px;">
+                    <option value="draft">Draft</option>
+                    <option value="sent">Sent</option>
+                    <option value="received">Received (restock immediately)</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label fw-semibold">Notes / Reference</label>
+            <input type="text" name="notes" class="form-control" style="border-radius:8px;" placeholder="e.g. Q1 Restocking order or Tracking #">
+        </div>
+
+        <h6 class="fw-semibold mb-3"><i class="bi bi-box-seam me-1"></i> Order Items</h6>
+        <div id="itemRows">
+            <div class="row g-2 mb-2 align-items-end item-row">
+                <div class="col-md-5">
+                    <label class="form-label small">Product</label>
+                    <select name="product_id" class="form-select" style="border-radius:8px;" required>
+                        <option value="">— Select Product —</option>
+                        {% for p in products %}
+                        <option value="{{ p.id }}">{{ p.name }} ({{ p.sku }}) — Current stock: {{ p.quantity }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small">Quantity</label>
+                    <input type="number" name="quantity" min="1" value="10" class="form-control" style="border-radius:8px;" required oninput="calcTotal()">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small">Unit Cost ($)</label>
+                    <input type="number" name="unit_cost" min="0" step="0.01" value="0.00" class="form-control unit-cost" style="border-radius:8px;" required oninput="calcTotal()">
+                </div>
+                <div class="col-md-1">
+                    <button type="button" class="btn-sf danger btn-sm" onclick="removeRow(this)"><i class="bi bi-x-lg"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <button type="button" class="btn-sf outline mt-2 mb-4" onclick="addRow()"><i class="bi bi-plus-lg"></i> Add Item</button>
+
+        <div class="d-flex justify-content-between align-items-center p-3 rounded mb-4" style="background:var(--sf-bg); border:1px solid var(--sf-border);">
+            <div class="fw-semibold text-muted">Estimated Total PO Cost:</div>
+            <div class="fs-4 fw-bold text-primary" id="grandTotal">$0.00</div>
+        </div>
+
+        <div class="d-flex gap-2 justify-content-end">
+            <a href="{{ url_for('purchase_order_list') }}" class="btn-sf outline">Cancel</a>
+            <button type="submit" class="btn-sf primary"><i class="bi bi-check-circle"></i> Create Purchase Order</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function addRow() {
+    const template = document.querySelector('.item-row');
+    const clone = template.cloneNode(true);
+    clone.querySelector('select').value = '';
+    clone.querySelector('input[name="quantity"]').value = 10;
+    clone.querySelector('input[name="unit_cost"]').value = '0.00';
+    document.getElementById('itemRows').appendChild(clone);
+}
+function removeRow(btn) {
+    if (document.querySelectorAll('.item-row').length > 1) {
+        btn.closest('.item-row').remove();
+        calcTotal();
+    }
+}
+function calcTotal() {
+    let total = 0;
+    document.querySelectorAll('.item-row').forEach(row => {
+        const qty = parseFloat(row.querySelector('input[name="quantity"]').value) || 0;
+        const cost = parseFloat(row.querySelector('.unit-cost').value) || 0;
+        total += qty * cost;
+    });
+    document.getElementById('grandTotal').textContent = '$' + total.toFixed(2);
+}
+document.addEventListener('DOMContentLoaded', calcTotal);
+</script>
+{% endblock %}
